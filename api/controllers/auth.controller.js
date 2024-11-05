@@ -10,7 +10,6 @@ const generateToken = (userId, role) => {
 
 export const signIn = async (req, res) => {
   const { email, password } = req.body;
-
   if (!email || !password) {
     return res
       .status(400)
@@ -34,12 +33,12 @@ export const signIn = async (req, res) => {
 
     const token = generateToken(user._id, user.role);
 
-    const { password: _, ...userData } = user._doc;
+    const { password: _, _id: id, ...userData } = user._doc;
 
     res
       .status(200)
       .cookie("access_token", token)
-      .json({ success: true, message: "Sign In Success", user: userData });
+      .json({ success: true, message: "Sign In Success", user: {...userData, id} });
   } catch (error) {
     console.error("SignIn Error:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -47,13 +46,12 @@ export const signIn = async (req, res) => {
 };
 
 export const signUp = async (req, res) => {
-  const { firstName, lastName, role, email, password } = req.body;
+  const { firstName, lastName, role = "employee", email, password } = req.body;
 
   // Validation for missing fields
   const missingFields = [
     "firstName",
     "lastName",
-    "role",
     "email",
     "password",
   ].filter((field) => !req.body[field]);
@@ -112,9 +110,10 @@ export const signUp = async (req, res) => {
 
 export const signOut = async (req, res) => {
   try {
-    res.clearCookie("access_token"); // Clears the "access_token" cookie set in the signIn function
+    res.clearCookie("access_token");
     return res.status(200).json({ success: true, message: "Sign Out Success" });
   } catch (error) {
+    console.error("SignOut Error:", error);
     return res.status(400).json({ success: false, error: error.message });
   }
 };

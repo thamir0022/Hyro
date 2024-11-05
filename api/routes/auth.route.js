@@ -5,6 +5,6 @@ const app = express();
 
 app.post('/sign-in', signIn);
 app.post('/sign-up', signUp);
-app.post('/sign-out', signOut);
+app.get('/sign-out', signOut);
 
 export default app;
