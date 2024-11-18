@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from '@/hooks/use-toast'
 import { useUser } from '@/context/userContext'
+import Layout from '@/components/Layout'
 
 interface LeaveApplicationData {
   employeeId: string
@@ -113,6 +114,7 @@ export default function LeaveApplication() {
   }
 
   return (
+    <Layout>
     <div className="container mx-auto py-10">
       <Card>
         <CardHeader>
@@ -184,5 +186,6 @@ export default function LeaveApplication() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   )
 }

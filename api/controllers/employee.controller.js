@@ -4,6 +4,7 @@ import User from "../models/user.model.js";
 import Attendance from "../models/attendance.model.js";
 import employeeCTCModel from "../models/employeeCTC.model.js";
 import LeaveApplication from "../models/leaveApplication.model.js";
+import PersonalGoal from "../models/personalGoal.model.js";
 
 export const getEmployee = async (req, res, next) => {
   try {
@@ -183,8 +184,8 @@ export const applyLeave = async (req, res) => {
 export const getAllLeaveApplications = async (req, res) => {
   try {
     // Fetch all leave applications from the database
-    const {employeeId} = req.query;
-    const leaveApplications = await LeaveApplication.find({employeeId}).sort({ createdAt: -1 }); // Sort by creation date (newest first)
+    const { employeeId } = req.query;
+    const leaveApplications = await LeaveApplication.find({ employeeId }).sort({ createdAt: -1 }); // Sort by creation date (newest first)
 
     return res.status(200).json({ message: 'Leave applications retrieved successfully.', leaveApplications });
   } catch (error) {
@@ -222,7 +223,7 @@ export const getAttendance = async (req, res, next) => {
   const period = req.query.period || "today"; // Default to 'today' if not provided
   const { startDate, endDate } = getDateRange(period);
 
-  if(userId !== req.user.id) {
+  if (userId !== req.user.id) {
     return next(403, "You do not have permission to access this user attendance data!");
   }
 
@@ -259,3 +260,121 @@ export const getAttendance = async (req, res, next) => {
     res.status(500).json({ error: "Failed to retrieve attendance data" });
   }
 };
+
+// Personal Goal fuction of employee
+
+export const addPersonalGoal = async (req, res, next) => {
+  try {
+    const { title, description, targetDate } = req.body;
+    const userId = req.user.id;
+
+    if (!title || !description || !targetDate) {
+      return next(errorHandler(400, 'Reaquired all feilds.'));
+    }
+
+    const employee = await User.findById(userId);
+    if (!employee) {
+      return next(errorHandler(404, 'Employee not found.'));
+    }
+
+    const newGoal = new PersonalGoal({
+      title,
+      description,
+      userId,
+      targetDate,
+      completed: false,
+    });
+
+    await newGoal.save();
+
+    return res.status(201).json({ sucess: true, message: 'Personal goal adedd succesfully.', newGoal });
+  }
+  catch (error) {
+    console.error("Error adding personal goal", error);
+    return res.status(500).json({ message: 'internal server error' });
+  }
+};
+
+// retrieve personal goal
+
+export const getPersonalGoal = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const personalGoals = await PersonalGoal.find({ userId });
+    if (!personalGoals || personalGoals.length === 0) {
+      return next(errorHandler(404, 'No personal goal found for this employee'));
+    }
+
+    return res.status(200).json({ success: true, personalGoals, message: "Personal goals retrived Successfully", totalGoals: personalGoals.length });
+  }
+
+  catch (error) {
+    console.error("Error getting personal goal", error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Edit personal goal 
+
+export const editPersonalGoal = async (req, res, next) => {
+  try {
+
+    const userId = req.user.id;
+    const { goalId } = req.params;
+
+    if (!goalId || !isValidObjectId(goalId)) {
+      return next(errorHandler(400, goalId ? "Goal id is Invalied" : "Goal id is Required"))
+    }
+    const { title, description, targetDate, completed } = req.body;
+
+    if (!title || !description || !targetDate) {
+      return next(errorHandler(400, 'All fields are required'));
+    }
+
+    const UpdatedGoal = await PersonalGoal.findOneAndUpdate(
+      { _id: goalId, userId },
+      { title, description, targetDate, completed },
+      { new: true, runValidators: true }
+    );
+
+    if (!UpdatedGoal) {
+      return next(errorHandler(404, 'personal goal not found or not authorized by this employee'));
+    }
+
+    return res.status(200).json({ sucess: true, message: 'Personal goal updated succesfully' })
+  }
+  catch (error) {
+
+    console.error('error updating personal goal', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+
+  }
+};
+
+// Delete personal goal
+
+export const deletePersonalGoal = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { goalId } = req.params;
+
+    if (!goalId || !isValidObjectId(goalId)) {
+      return next(errorHandler(400, goalId ? "Goal id is Invalied" : "Goal id is Required"))
+    }
+
+    const deleteGoal = await PersonalGoal.findOneAndDelete(
+      { _id: goalId, userId },
+    );
+
+    if (!deleteGoal) {
+      return next(errorHandler(404, 'Personal goal not found or not accessible by this employee'));
+    }
+
+    return res.status(200).json({ success: true, message: 'personal goal deleted successfully' });
+  }
+  catch (error) {
+    console.error('error deleting personal goal', error);
+    return res.status(500).json({ message: 'internal server error' });
+  }
+}

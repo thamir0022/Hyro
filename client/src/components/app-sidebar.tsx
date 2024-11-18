@@ -9,6 +9,7 @@ import {
   Users,
   SquarePen,
   BookOpen,
+  Goal,
 } from "lucide-react";
 import {
   Sidebar,
@@ -67,9 +68,11 @@ const hrItems: Item[] = [
 const employeeItems: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: ChartPie },
   { title: "Inbox", url: "#", icon: Inbox},
+  { title: "Personal Goals", url: "/add-goals", icon: Goal },
   { title: "Apply A Leave", url: "/apply-leave", icon: SquarePen},
   { title: "Leave Applications", url: "/all-leaves", icon: BookOpen},
   { title: "Settings", url: "#", icon: Settings },
+  
 ];
 
 const adminItems: Item[] = [

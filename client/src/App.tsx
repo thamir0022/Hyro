@@ -20,6 +20,7 @@ import HREdit from "./pages/EditHR";
 import LeaveApplication from "./pages/LeaveApplicationPage";
 import AppliedLeaves from "./pages/AppliedLeavesPage";
 import HRLeaveApplications from "./pages/AllLeaveApplications";
+import PersonalGoals from "./pages/PersonalGoals";
 
 const App = () => {
   return (
@@ -32,6 +33,7 @@ const App = () => {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/apply-leave" element={<LeaveApplication />} />
               <Route path="/all-leaves" element={<AppliedLeaves />} />
+              <Route path="/add-goals" element={<PersonalGoals/>} />
             </Route>
             <Route element={<OnlyHRPrivateRoutes />}>
               <Route path="/employee/:id?" element={<Employee />} />
