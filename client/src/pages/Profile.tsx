@@ -315,7 +315,7 @@ export default function Employee() {
                       {attendanceData.attendanceData.map((record) => (
                         <li key={record._id} className="flex justify-between items-center">
                           <span>{new Date(record.date).toLocaleDateString()}</span>
-                          <span>{record.duration.toFixed(2)} hours</span>
+                          <span>{record.duration?.toFixed(2)} hours</span>
                         </li>
                       ))}
                     </ul>
