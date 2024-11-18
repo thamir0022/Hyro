@@ -15,6 +15,7 @@ import {
 import { toast } from "@/hooks/use-toast"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
+import Feedback from "@/components/Feedback"
 
 interface Performance {
   _id: string
@@ -74,7 +75,7 @@ function CTCDetails({ ctcData }: { ctcData: CTCData }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Compensation Details</CardTitle>
+        <CardTitle>My Compensation Details</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -129,42 +130,48 @@ export default function Employee() {
   const { user } = useUser()
   const [isCheckingIn, setIsCheckingIn] = useState(false)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [feedbacks, setFeedbacks] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [employeeRes, ctcRes, attendanceRes] = await Promise.all([
+        const [employeeRes, ctcRes, attendanceRes, feedbacksRes] = await Promise.all([
           fetch(`/api/employee/user/${user?.id}`),
           fetch(`/api/employee/ctc/${user?.id}`),
-          fetch(`/api/employee/attendance?userId=${user?.id}&period=${attendancePeriod}`)
-        ])
-
-        if (!employeeRes.ok) throw new Error("Failed to fetch employee data")
-        if (!ctcRes.ok) throw new Error("Failed to fetch CTC data")
-        if (!attendanceRes.ok) throw new Error("Failed to fetch attendance data")
-
-        const employeeData = await employeeRes.json()
-        const ctcData = await ctcRes.json()
-        const attendanceData = await attendanceRes.json()
-
-        setEmployee(employeeData)
-        setCTCData(ctcData.ctc)
-        setAttendanceData(attendanceData)
+          fetch(`/api/employee/attendance?userId=${user?.id}&period=${attendancePeriod}`),
+          fetch("/api/employee/feedbacks"),
+        ]);
+  
+        const employeeData = await employeeRes.json();
+        const ctcData = await ctcRes.json();
+        const attendanceData = await attendanceRes.json();
+        const feedbacksData = await feedbacksRes.json();
+  
+        // If any of the responses are not ok, use the message from the response
+        if (!employeeRes.ok) throw new Error(employeeData?.message || "Failed to fetch employee data");
+        if (!ctcRes.ok) throw new Error(ctcData?.message || "Failed to fetch CTC data");
+        if (!attendanceRes.ok) throw new Error(attendanceData?.message || "Failed to fetch attendance data");
+        if (!feedbacksRes.ok) throw new Error(feedbacksData?.message || "Failed to fetch feedback data");
+  
+        setEmployee(employeeData);
+        setCTCData(ctcData.ctc);
+        setAttendanceData(attendanceData);
+        setFeedbacks(feedbacksData);
       } catch (error: any) {
-        console.error(error.message)
+        console.error(error.message);
         toast({
           title: "Error",
-          description: "Failed to load employee data. Please try again.",
+          description: error.message || "Failed to load employee data. Please try again.",
           variant: "destructive",
-        })
+        });
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-
-    fetchData()
+    };
+  
+    fetchData();
   }, [user?.id, attendancePeriod]);
-
+  
 
   const handleCheckIn = async () => {
     try {
@@ -228,9 +235,9 @@ export default function Employee() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <h2 className="text-3xl font-semibold text-center">My Profile</h2>
       <Card>
         <CardHeader>
-          <CardTitle>Your Profile</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row items-center md:items-start gap-6">
           <Avatar className="h-24 w-24">
@@ -276,7 +283,7 @@ export default function Employee() {
       {/* Attendance Details Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle>Attendance Details</CardTitle>
+          <CardTitle>My Attendance Details</CardTitle>
           <Select value={attendancePeriod} onValueChange={setAttendancePeriod}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select period" />
@@ -350,6 +357,8 @@ export default function Employee() {
           </ChartContainer>
         </CardContent>
       </Card>
+
+      <Feedback feedbacks={feedbacks}/>
     </div>
   )
 }
