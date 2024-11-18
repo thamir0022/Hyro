@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import React, { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 
 const PersonalGoals = () => {
@@ -20,12 +20,36 @@ const PersonalGoals = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [goals, setGoals] = useState<any[]>([]);
 
-  const [editIndex, setEditIndex] = useState<number | null>(null); // Track which card is being edited
+  const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editedGoal, setEditedGoal] = useState<any>({});
+
+  useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        const res = await fetch("/api/employee/all-goal");
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to fetch goals");
+        }
+
+        setGoals(data.personalGoals);
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: "Error",
+          description: "Could not load goals. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchGoals();
+  }, []);
 
   const handleEdit = (index: number, goal: any) => {
     setEditIndex(index);
-    setEditedGoal(goal); // Pre-fill the input fields with the existing goal data
+    setEditedGoal({ ...goal });
   };
 
   const handleSave = async (goalId: string, index: number) => {
@@ -34,34 +58,29 @@ const PersonalGoals = () => {
   
       const response = await fetch(`/api/employee/edit-goal/${goalId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: editedGoal.title,
-          description: editedGoal.description,
-          targetDate: editedGoal.targetDate,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editedGoal),
       });
   
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update goal");
+        throw new Error("Failed to update goal");
       }
   
       const data = await response.json();
   
-      // Update the goals state
-      setGoals((prevGoals) =>
-        prevGoals.map((goal, i) => (i === index ? { ...goal, ...data.updatedGoal } : goal))
-      );
+      setGoals((prevGoals) => {
+        const updatedGoals = [...prevGoals];
+        updatedGoals[index] = data.updatedGoal; // Replace the goal with the updated one
+        return updatedGoals;
+      });
   
       toast({
         title: "Success",
         description: "Goal updated successfully!",
       });
   
-      setEditIndex(null); // Exit edit mode
+      // Clear editing state
+      setEditIndex(null);
       setEditedGoal({});
     } catch (error) {
       console.error("Error updating goal:", error);
@@ -75,28 +94,22 @@ const PersonalGoals = () => {
     }
   };
   
+
   const handleDelete = async (goalId: string, index: number) => {
     try {
-      // Send DELETE request to the backend
       const response = await fetch(`/api/employee/delete-goal/${goalId}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
-  
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete goal");
+        throw new Error("Failed to delete goal");
       }
-  
-      // Show success toast
+
       toast({
         title: "Success",
         description: "Goal deleted successfully!",
       });
-  
-      // Remove the deleted goal from the state
+
       setGoals((prevGoals) => prevGoals.filter((_, i) => i !== index));
     } catch (error) {
       console.error("Error deleting goal:", error);
@@ -107,32 +120,6 @@ const PersonalGoals = () => {
       });
     }
   };
-
-  useEffect(() => {
-    const getMyGoals = async () => {
-      try {
-        const res = await fetch("/api/employee/all-goal");
-        const data = await res.json();
-        if (!res.ok) {
-          toast({
-            title: "Failed to load goals",
-            description: data.message || "Try again later",
-            variant: "destructive",
-          });
-          return;
-        }
-        setGoals(data.personalGoals);
-      } catch (error) {
-        console.error(error);
-        toast({
-          title: "Error",
-          description: "Could not load goals. Please try again.",
-          variant: "destructive",
-        });
-      }
-    };
-    getMyGoals();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,14 +138,8 @@ const PersonalGoals = () => {
 
       const response = await fetch("/api/employee/add-goal", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: goalTitle,
-          description: goalDescription,
-          targetDate,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: goalTitle, description: goalDescription, targetDate }),
       });
 
       if (!response.ok) {
@@ -167,18 +148,16 @@ const PersonalGoals = () => {
 
       const data = await response.json();
 
+      setGoals((prevGoals) => [data.newGoal, ...prevGoals]);
+
       toast({
         title: "Success",
         description: "Goal added successfully!",
       });
 
-      // Reset form
       setGoalTitle("");
       setGoalDescription("");
       setTargetDate("");
-
-      // Update goals list
-      setGoals((prevGoals) => [...prevGoals, data.newGoal]);
     } catch (error) {
       console.error("Error adding goal:", error);
       toast({
@@ -191,34 +170,29 @@ const PersonalGoals = () => {
     }
   };
 
-  
-
   return (
     <Layout>
-      <h1 className="mb-5">My Goals</h1>
-      <div className="flex justify-around gap-3">
-        <div className="">
-          <form>
-          {goals && goals.length > 0 ? (
-            goals.map((goal: any, index: number) => (
-              <Card key={goal.id || index} className="w-[450px]">
+      <div className="grid grid-cols-8 gap-4">
+        {/* Goals List */}
+        <div className="col-span-3">
+          <h2 className="text-center text-3xl font-semibold my-3">My Goals</h2>
+          {goals.length > 0 ? (
+            goals.map((goal, index) => (
+              <Card key={goal._id || index} className="mb-4">
                 <CardHeader>
                   {editIndex === index ? (
                     <>
                       <Input
                         value={editedGoal.title || ""}
                         onChange={(e) =>
-                          setEditedGoal({ ...editedGoal, title: e.target.value })
+                          setEditedGoal((prev: any) => ({ ...prev, title: e.target.value }))
                         }
                         placeholder="Goal Title"
                       />
                       <Input
                         value={editedGoal.description || ""}
                         onChange={(e) =>
-                          setEditedGoal({
-                            ...editedGoal,
-                            description: e.target.value,
-                          })
+                          setEditedGoal((prev: any) => ({ ...prev, description: e.target.value }))
                         }
                         placeholder="Goal Description"
                       />
@@ -226,10 +200,7 @@ const PersonalGoals = () => {
                         type="date"
                         value={editedGoal.targetDate?.split("T")[0] || ""}
                         onChange={(e) =>
-                          setEditedGoal({
-                            ...editedGoal,
-                            targetDate: e.target.value,
-                          })
+                          setEditedGoal((prev: any) => ({ ...prev, targetDate: e.target.value }))
                         }
                       />
                     </>
@@ -245,59 +216,55 @@ const PersonalGoals = () => {
                 </CardHeader>
                 <CardFooter className="flex justify-between">
                   {editIndex === index ? (
-                    <Button
-                    type="button"
-                      onClick={() => handleSave(goal._Id,index)}
-                      className="bg-green-500"
-                    >
-                      Update
+                    <Button onClick={() => handleSave(goal._id, index)} className="bg-green-500">
+                      Save
                     </Button>
-                    
                   ) : (
-                    <Button
-                      variant="outline"
-                      onClick={() => handleEdit(index, goal)}
-                    >
+                    <Button variant="outline" onClick={() => handleEdit(index, goal)}>
                       Edit
                     </Button>
                   )}
-                  <Button className="bg-red-500" onClick={() => handleDelete(goal._id, index)} >Delete</Button>
+                  <Button
+                    className="bg-red-500"
+                    onClick={() => handleDelete(goal._id, index)}
+                  >
+                    Delete
+                  </Button>
                 </CardFooter>
               </Card>
             ))
           ) : (
-            <p>You have no personal goals</p>
+            <p className="text-center">You have no personal goals</p>
           )}
-          </form>
         </div>
-        <div className="mt-6">
-          <Card className="w-[750px]">
-            <CardHeader>
-              <CardTitle>Add Goals</CardTitle>
-            </CardHeader>
+
+        {/* Add Goal Form */}
+        <div className="col-span-5">
+        <h2 className="text-center text-3xl font-semibold my-3">Add A New Goal</h2>
+          <Card className="w-full">
+            <CardHeader></CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit}>
-                <div className="grid w-full items-center gap-4">
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="name">Goal Title</Label>
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="goalTitle">Goal Title</Label>
                     <Input
-                      id="name"
+                      id="goalTitle"
                       value={goalTitle}
                       onChange={(e) => setGoalTitle(e.target.value)}
                       placeholder="Your goal title"
                     />
                   </div>
-                  <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="description">Goal Description</Label>
+                  <div>
+                    <Label htmlFor="goalDescription">Goal Description</Label>
                     <Input
-                      id="description"
+                      id="goalDescription"
                       value={goalDescription}
                       onChange={(e) => setGoalDescription(e.target.value)}
-                      type="text"
                       placeholder="Goal description"
                     />
                   </div>
-                  <div className="flex flex-col space-y-1.5">
+                  <div>
                     <Label htmlFor="targetDate">Target Date</Label>
                     <Input
                       id="targetDate"

@@ -301,7 +301,7 @@ export const getPersonalGoal = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    const personalGoals = await PersonalGoal.find({ userId });
+    const personalGoals = await PersonalGoal.find({ userId }).sort({createdAt: -1});
     if (!personalGoals || personalGoals.length === 0) {
       return next(errorHandler(404, 'No personal goal found for this employee'));
     }
@@ -342,7 +342,7 @@ export const editPersonalGoal = async (req, res, next) => {
       return next(errorHandler(404, 'personal goal not found or not authorized by this employee'));
     }
 
-    return res.status(200).json({ sucess: true, message: 'Personal goal updated succesfully' })
+    return res.status(200).json({ sucess: true, message: 'Personal goal updated succesfully', updatedGoal: UpdatedGoal })
   }
   catch (error) {
 
