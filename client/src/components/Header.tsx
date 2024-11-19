@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from "./ui/dialog";
 
-const Header = () => {
+const   Header = () => {
   const { user, logout } = useUser();
   const navigate = useNavigate();
 
@@ -107,7 +107,7 @@ const Header = () => {
     : defaultItems;
 
   return (
-    <header className="w-full flex items-center px-10 py-3">
+    <header className="h-16 w-full py-3 px-6 flex items-center">
       <nav className="hidden mx-auto md:flex items-center md:justify-between w-2/6 font-poppins">
         {items?.map(({ title, url }) => (
           <Link key={title} to={url} className="capitalize">

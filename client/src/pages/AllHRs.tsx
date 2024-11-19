@@ -24,7 +24,7 @@ interface HR {
 }
 
 interface HRData {
-  totalHRs: number;
+  totalHrs: string;
   hrs: HR[];
 }
 
@@ -91,9 +91,6 @@ export default function AllHR() {
   };
 
   const sortedHRs = hrData ? sortHRs(hrData.hrs) : [];
-
-  console.log(hrData);
-
   return (
     <Layout>
       {isLoading ? (
@@ -107,7 +104,7 @@ export default function AllHR() {
       ) : (
         <div className="container mx-auto py-10">
           <h1 className="text-2xl font-bold mb-4">
-            Total HRs: {hrData.totalHRs}
+            Total HRs: {hrData.totalHrs}
           </h1>
           <div className="rounded-md border">
             <Table>

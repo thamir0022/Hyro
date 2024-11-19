@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import Layout from "@/components/Layout";
 
 interface EmployeeFormData {
   firstName: string;
@@ -55,10 +56,14 @@ export default function AddEmployee() {
 
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "joiningDate" ? value : // Set as-is for date
-               ["firstName", "lastName", "email", "position", "password"].includes(name)
-               ? value
-               : parseFloat(value) || 0,
+      [name]:
+        name === "joiningDate"
+          ? value // Set as-is for date
+          : ["firstName", "lastName", "email", "position", "password"].includes(
+              name
+            )
+          ? value
+          : parseFloat(value) || 0,
     }));
   };
 
@@ -131,55 +136,58 @@ export default function AddEmployee() {
   };
 
   return (
-    <div className="container mx-auto py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add New Employee</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.keys(formData).map((field) => (
-                <div key={field} className="space-y-2">
-                  <Label htmlFor={field}>
-                    {field.replace(/([A-Z])/g, " $1")}
-                  </Label>
-                  <Input
-                    id={field}
-                    name={field}
-                    type={
-                      field === "password"
-                        ? "password"
-                        : field === "joiningDate"
-                        ? "date"
-                        : typeof formData[field as keyof EmployeeFormData] === "number"
-                        ? "number"
-                        : "text"
-                    }
-                    value={
-                      field === "joiningDate"
-                        ? formData.joiningDate.toString().split("T")[0] // Format date as YYYY-MM-DD
-                        : formData[field as keyof EmployeeFormData]
-                    }
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              ))}
-            </div>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                "Add Employee"
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <Layout>
+      <div className="container mx-auto py-10">
+        <h2 className="mb-4 text-center text-3xl font-semibold">Add New Employee</h2>
+        <Card>
+          <CardHeader>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Object.keys(formData).map((field) => (
+                  <div key={field} className="space-y-2">
+                    <Label className="capitalize" htmlFor={field}>
+                      {field.replace(/([A-Z])/g, " $1")}
+                    </Label>
+                    <Input
+                      id={field}
+                      name={field}
+                      type={
+                        field === "password"
+                          ? "password"
+                          : field === "joiningDate"
+                          ? "date"
+                          : typeof formData[field as keyof EmployeeFormData] ===
+                            "number"
+                          ? "number"
+                          : "text"
+                      }
+                      value={
+                        field === "joiningDate"
+                          ? formData.joiningDate.toString().split("T")[0] // Format date as YYYY-MM-DD
+                          : formData[field as keyof EmployeeFormData]
+                      }
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                ))}
+              </div>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  "Add Employee"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
   );
 }

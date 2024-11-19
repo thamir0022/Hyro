@@ -95,7 +95,7 @@ const adminItems: Item[] = [
     url: "/employees",
     icon: UsersRound,
     subItem: [
-      { title: "All HR", url: "/hr" },
+      { title: "All HR", url: "/all-hr" },
       { title: "New HR", url: "/create/hr" },
     ],
   },

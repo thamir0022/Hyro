@@ -20,8 +20,6 @@ interface Feedback {
 }
 
 const Feedback = ({ feedbacks }: { feedbacks: Feedback[] }) => {
-  console.log(feedbacks);
-
   return feedbacks.length > 0 ? (
     <div className="space-y-5">
       <h2 className="font-semibold">My Feedbacks</h2>

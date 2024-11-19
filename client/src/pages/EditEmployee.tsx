@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import Layout from "@/components/Layout";
 
 const ROLE_OPTIONS = ["employee", "hr", "admin"];
 
@@ -28,7 +29,13 @@ interface EmployeeFormData {
   providentFund?: number;
 }
 
-function RoleDropdown({ value, onChange }: { value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void }) {
+function RoleDropdown({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+}) {
   return (
     <select name="role" id="role" value={value} onChange={onChange}>
       {ROLE_OPTIONS.map((role) => (
@@ -63,17 +70,18 @@ export default function EmployeeEdit() {
           fetch(`/api/hr/employee/${id}`),
           fetch(`/api/employee/ctc/${id}`),
         ]);
-  
-        if (!employeeRes.ok || !ctcRes.ok) throw new Error("Failed to fetch data");
-  
+
+        if (!employeeRes.ok || !ctcRes.ok)
+          throw new Error("Failed to fetch data");
+
         const employeeData = await employeeRes.json();
         const ctcData = await ctcRes.json();
-  
+
         // Convert joiningDate to YYYY-MM-DD format if it’s not already
         const formattedJoiningDate = new Date(employeeData.joiningDate)
           .toISOString()
           .split("T")[0];
-  
+
         setFormData({
           firstName: employeeData.firstName,
           lastName: employeeData.lastName,
@@ -98,23 +106,34 @@ export default function EmployeeEdit() {
         setIsLoading(false);
       }
     };
-  
+
     fetchEmployeeData();
   }, [id]);
-  
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name.includes("Allowance") || name.includes("Bonus") || ["tax", "healthInsurance", "providentFund"].includes(name)
-        ? parseFloat(value) || 0
-        : value,
+      [name]:
+        name.includes("Allowance") ||
+        name.includes("Bonus") ||
+        ["tax", "healthInsurance", "providentFund"].includes(name)
+          ? parseFloat(value) || 0
+          : value,
     }));
   };
 
   const validateForm = (): boolean => {
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.role || !formData.position || !formData.joiningDate) {
+    if (
+      !formData.firstName ||
+      !formData.lastName ||
+      !formData.email ||
+      !formData.role ||
+      !formData.position ||
+      !formData.joiningDate
+    ) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
@@ -167,63 +186,124 @@ export default function EmployeeEdit() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Edit Employee</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Fields with new position and joiningDate */}
-              {[
-                { label: "First Name", name: "firstName", required: true },
-                { label: "Last Name", name: "lastName", required: true },
-                { label: "Email", name: "email", type: "email", required: true },
-                { label: "Role", name: "role", component: RoleDropdown },
-                { label: "Position", name: "position", required: true },
-                { label: "Joining Date", name: "joiningDate", type: "date", required: true },
-                { label: "Annual CTC", name: "annualCTC", type: "number", required: true },
-                { label: "Monthly In-Hand", name: "monthlyInHand", type: "number", required: true },
-                { label: "Housing Allowance", name: "housingAllowance", type: "number" },
-                { label: "Transport Allowance", name: "transportAllowance", type: "number" },
-                { label: "Meal Allowance", name: "mealAllowance", type: "number" },
-                { label: "Performance Bonus", name: "performanceBonus", type: "number" },
-                { label: "Year-End Bonus", name: "yearEndBonus", type: "number" },
-                { label: "Tax", name: "tax", type: "number" },
-                { label: "Health Insurance", name: "healthInsurance", type: "number" },
-                { label: "Provident Fund", name: "providentFund", type: "number" },
-              ].map(({ label, name, type = "text", required = false, component: Component }) => (
-                <div key={name} className="space-y-2">
-                  <Label htmlFor={name}>{label}</Label>
-                  {Component ? (
-                    <Component value={formData[name as keyof EmployeeFormData] || ""} onChange={handleInputChange} />
-                  ) : (
-                    <Input
-                      id={name}
-                      name={name}
-                      type={type}
-                      value={formData[name as keyof EmployeeFormData] || ""}
-                      onChange={handleInputChange}
-                      required={required}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                "Update Employee"
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <Layout>
+      <div className="container mx-auto py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>Edit Employee</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Fields with new position and joiningDate */}
+                {[
+                  { label: "First Name", name: "firstName", required: true },
+                  { label: "Last Name", name: "lastName", required: true },
+                  {
+                    label: "Email",
+                    name: "email",
+                    type: "email",
+                    required: true,
+                  },
+                  { label: "Role", name: "role", component: RoleDropdown },
+                  { label: "Position", name: "position", required: true },
+                  {
+                    label: "Joining Date",
+                    name: "joiningDate",
+                    type: "date",
+                    required: true,
+                  },
+                  {
+                    label: "Annual CTC",
+                    name: "annualCTC",
+                    type: "number",
+                    required: true,
+                  },
+                  {
+                    label: "Monthly In-Hand",
+                    name: "monthlyInHand",
+                    type: "number",
+                    required: true,
+                  },
+                  {
+                    label: "Housing Allowance",
+                    name: "housingAllowance",
+                    type: "number",
+                  },
+                  {
+                    label: "Transport Allowance",
+                    name: "transportAllowance",
+                    type: "number",
+                  },
+                  {
+                    label: "Meal Allowance",
+                    name: "mealAllowance",
+                    type: "number",
+                  },
+                  {
+                    label: "Performance Bonus",
+                    name: "performanceBonus",
+                    type: "number",
+                  },
+                  {
+                    label: "Year-End Bonus",
+                    name: "yearEndBonus",
+                    type: "number",
+                  },
+                  { label: "Tax", name: "tax", type: "number" },
+                  {
+                    label: "Health Insurance",
+                    name: "healthInsurance",
+                    type: "number",
+                  },
+                  {
+                    label: "Provident Fund",
+                    name: "providentFund",
+                    type: "number",
+                  },
+                ].map(
+                  ({
+                    label,
+                    name,
+                    type = "text",
+                    required = false,
+                    component: Component,
+                  }) => (
+                    <div key={name} className="space-y-2">
+                      <Label htmlFor={name}>{label}</Label>
+                      {Component ? (
+                        <Component
+                          value={formData[name as keyof EmployeeFormData] as string || ""}
+                          onChange={handleInputChange}
+                        />
+                      ) : (
+                        <Input
+                          id={name}
+                          name={name}
+                          type={type}
+                          value={formData[name as keyof EmployeeFormData] || ""}
+                          onChange={handleInputChange}
+                          required={required}
+                        />
+                      )}
+                    </div>
+                  )
+                )}
+              </div>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Employee"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
   );
 }

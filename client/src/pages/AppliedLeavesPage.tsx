@@ -35,7 +35,6 @@ export default function AppliedLeaves() {
           throw new Error('Failed to fetch leave applications')
         }
         const data = await response.json();
-        console.log(data)
         setLeaveApplications(data.leaveApplications);
       } catch (error) {
         console.error('Error fetching leave applications:', error)

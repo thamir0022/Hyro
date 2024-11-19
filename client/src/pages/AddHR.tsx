@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import Layout from "@/components/Layout";
 
 interface HRFormData {
   firstName: string;
@@ -95,10 +96,11 @@ export default function AddHR() {
   };
 
   return (
-    <div className="container mx-auto py-10">
+    <Layout>
+      <div className="container mx-auto py-10">
+      <h2 className="mb-4 text-center text-3xl font-semibold">Add New HR</h2>
       <Card>
         <CardHeader>
-          <CardTitle>Add New HR</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-8">
@@ -163,5 +165,6 @@ export default function AddHR() {
         </CardContent>
       </Card>
     </div>
+    </Layout>
   );
 }

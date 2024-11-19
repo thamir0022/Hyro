@@ -3,11 +3,11 @@ import Header from "./Header";
 import AppSidebar from "./app-sidebar";
 
 const Layout = ({ children }: { children: ReactNode }) => (
-  <section className="w-screen h-screen flex">
+  <section className="w-screen h-screen flex scroll-smooth">
     <AppSidebar />
-    <div className="w-full flex flex-col">
+    <div className="size-full flex flex-col">
       <Header />
-      <main className="flex flex-col w-full min-h-screen">{children}</main>
+      <main className="flex flex-col w-full min-h-[100vh-4rem]">{children}</main>
     </div>
   </section>
 );
