@@ -182,12 +182,10 @@ export const applyLeave = async (req, res) => {
     // Save the leave application to the database
     await leaveApplication.save();
 
-    return res
-      .status(201)
-      .json({
-        message: "Leave application submitted successfully.",
-        leaveApplication,
-      });
+    return res.status(201).json({
+      message: "Leave application submitted successfully.",
+      leaveApplication,
+    });
   } catch (error) {
     console.error("Error applying for leave:", error);
     return res
@@ -204,17 +202,67 @@ export const getAllLeaveApplications = async (req, res) => {
       createdAt: -1,
     }); // Sort by creation date (newest first)
 
-    return res
-      .status(200)
-      .json({
-        message: "Leave applications retrieved successfully.",
-        leaveApplications,
-      });
+    return res.status(200).json({
+      message: "Leave applications retrieved successfully.",
+      leaveApplications,
+    });
   } catch (error) {
     console.error("Error retrieving leave applications:", error);
     return res
       .status(500)
       .json({ message: "Internal server error. Please try again later." });
+  }
+};
+
+export const getLeaveApplicationStatus = async (req, res, next) => {
+  try {
+    const userId = req.user.id || req.query.userId;
+
+    // Get the current date
+    const currentDate = new Date();
+
+    // Get the start and end date of the current month
+    const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // First day of current month
+    const currentMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // Last day of current month
+
+    // Find leave applications for the current month
+    const leaveApplications = await LeaveApplication.find({
+      employeeId: userId,
+      startDate: { $gte: currentMonthStart, $lte: currentMonthEnd }, // Filter by date range (start date within current month)
+    });
+
+    // Count the leave applications by status
+    const approvedLeaves = leaveApplications.filter((leave) => leave.status === "Approved").length;
+    const pendingLeaves = leaveApplications.filter((leave) => leave.status === "Pending").length;
+    const rejectedLeaves = leaveApplications.filter((leave) => leave.status === "Rejected").length;
+
+    // Check if the employee has exceeded the allowed leave limit (e.g., 4 leaves in the current month)
+    const totalLeaves = approvedLeaves + pendingLeaves; // Pending ones are not approved yet, but still count towards the limit
+    if (totalLeaves > 4) {
+      return res.status(200).json({
+        message: "You cannot have more than 4 leaves in a month.",
+        approvedLeaves,
+        pendingLeaves,
+        rejectedLeaves,
+        appliedLeaves: leaveApplications.length
+      });
+    }
+
+    // If total leaves are less than 4, calculate remaining leaves
+    const remainingLeaves = 4 - totalLeaves;
+
+    res.status(200).json({
+      approvedLeaves,
+      pendingLeaves,
+      rejectedLeaves,
+      totalLeavesForTheMonth: totalLeaves,
+      appliedLeaves: leaveApplications.length,
+      message: `You have ${remainingLeaves} leaves remaining`,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || "Internal server error. Please try again later.",
+    });
   }
 };
 
@@ -321,13 +369,11 @@ export const addPersonalGoal = async (req, res, next) => {
 
     await newGoal.save();
 
-    return res
-      .status(201)
-      .json({
-        sucess: true,
-        message: "Personal goal adedd succesfully.",
-        newGoal,
-      });
+    return res.status(201).json({
+      sucess: true,
+      message: "Personal goal adedd succesfully.",
+      newGoal,
+    });
   } catch (error) {
     console.error("Error adding personal goal", error);
     return res.status(500).json({ message: "internal server error" });
@@ -349,14 +395,12 @@ export const getPersonalGoal = async (req, res, next) => {
       );
     }
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        personalGoals,
-        message: "Personal goals retrived Successfully",
-        totalGoals: personalGoals.length,
-      });
+    return res.status(200).json({
+      success: true,
+      personalGoals,
+      message: "Personal goals retrived Successfully",
+      totalGoals: personalGoals.length,
+    });
   } catch (error) {
     console.error("Error getting personal goal", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -399,13 +443,11 @@ export const editPersonalGoal = async (req, res, next) => {
       );
     }
 
-    return res
-      .status(200)
-      .json({
-        sucess: true,
-        message: "Personal goal updated succesfully",
-        updatedGoal: UpdatedGoal,
-      });
+    return res.status(200).json({
+      sucess: true,
+      message: "Personal goal updated succesfully",
+      updatedGoal: UpdatedGoal,
+    });
   } catch (error) {
     console.error("error updating personal goal", error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -453,14 +495,16 @@ export const deletePersonalGoal = async (req, res, next) => {
 
 export const getFeedbacks = async (req, res, next) => {
   try {
-    const userId = req.user.id || req.query.userId;
+    const userId = req.query.userId || req.user.id;
 
     if (!userId) {
       return next(errorHandler(400, "User ID is required!"));
     }
 
     // Fetch all feedbacks for the user
-    const feedbacks = await Feedback.find({ userId }).populate("hr", "firstName lastName").sort({createdAt: -1});
+    const feedbacks = await Feedback.find({ userId })
+      .populate("hr", "firstName lastName")
+      .sort({ createdAt: -1 });
 
     if (!feedbacks || feedbacks.length === 0) {
       return next(errorHandler(404, "You have no feedbacks from the HR"));

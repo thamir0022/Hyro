@@ -12,6 +12,8 @@ import {
   deletePersonalGoal,
   getFeedbacks,
   getAllLeaveApplications,
+  applyLeave,
+  getLeaveApplicationStatus,
 } from "../controllers/employee.controller.js";
 
 const router = express();
@@ -21,6 +23,8 @@ router.get("/ctc/:id?", verifyToken, getEmployeeCTC);
 router.post("/check-in", verifyToken, checkIn);
 router.post("/check-out", verifyToken, checkOut);
 router.get("/all-leaves", verifyToken, getAllLeaveApplications);
+router.get("/leave-application-status", verifyToken, getLeaveApplicationStatus);
+router.post("/apply-leave", verifyToken, applyLeave);
 router.get("/attendance", verifyToken, getAttendance);
 router.post("/add-goal", verifyToken, addPersonalGoal);
 router.patch("/edit-goal/:goalId?", verifyToken, editPersonalGoal);

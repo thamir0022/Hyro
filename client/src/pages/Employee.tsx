@@ -33,6 +33,7 @@ import {
 import { DialogClose } from "@radix-ui/react-dialog";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import HRFeedbacks from "@/components/HRFeedbacks";
 
 interface Performance {
   _id: string;
@@ -443,6 +444,8 @@ export default function Employee() {
           </ChartContainer>
         </CardContent>
       </Card>
+
+      <HRFeedbacks user={{id: id as string, name: `${employee.firstName} ${employee.lastName}`}}/>
     </div>
   );
 }
