@@ -7,14 +7,10 @@ const FeedbackSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-    hrId: {
+    hr: {
       type: mongoose.Types.ObjectId,
       ref: 'User',
       required: true,
-    },
-    date: {
-      type: Date,
-      default: Date().now,
     },
     content: {
       type: String,

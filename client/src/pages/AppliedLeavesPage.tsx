@@ -84,7 +84,7 @@ export default function AppliedLeaves() {
       <div className="container mx-auto py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Your Leave Applications</CardTitle>
+          <CardTitle>My Leave Applications</CardTitle>
         </CardHeader>
         <CardContent>
           {leaveApplications.length === 0 ? (

@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import LeaveApplication from "../models/leaveApplication.model.js";
 import moment from "moment";
 import Attendance from "../models/attendance.model.js";
+import Feedback from "../models/feedback.model.js";
 
 export const getEmployees = async (req, res, next) => {
   try {
@@ -431,7 +432,6 @@ export const updateLeaveApplicationStatus = async (req, res, next) => {
   }
 };
 
-
 // Helper function to generate date ranges
 const getDateRange = (period) => {
   const now = new Date();
@@ -439,7 +439,11 @@ const getDateRange = (period) => {
 
   switch (period) {
     case "weekly":
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+      startDate = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - now.getDay()
+      );
       break;
     case "monthly":
       startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of the current month
@@ -465,11 +469,14 @@ export const getAttendance = async (req, res) => {
     // Fetch attendance data within the date range
     const attendanceData = await Attendance.find({
       userId,
-      date: { $gte: startDate, $lte: endDate }
+      date: { $gte: startDate, $lte: endDate },
     });
 
     // Calculate total worked hours
-    const workedHours = attendanceData.reduce((total, record) => total + (record.duration || 0), 0);
+    const workedHours = attendanceData.reduce(
+      (total, record) => total + (record.duration || 0),
+      0
+    );
 
     // Calculate total working hours based on the period
     let totalWorkingHours;
@@ -487,10 +494,47 @@ export const getAttendance = async (req, res) => {
     res.status(200).json({
       attendanceData,
       workedHours,
-      totalWorkingHours
+      totalWorkingHours,
     });
   } catch (error) {
     console.error("Error retrieving attendance data:", error);
     res.status(500).json({ error: "Failed to retrieve attendance data" });
+  }
+};
+
+export const addFeedback = async (req, res, next) => {
+  if (!["admin", "hr"].includes(req.user.role)) {
+    return next(
+      errorHandler(401, "You do not have permission to access this API.")
+    );
+  }
+
+  const { userId, content } = req.body;
+
+  if (!userId || !content) {
+    return next(errorHandler(400, "User ID and feedback content is required."));
+  }
+
+  try {
+    // Create and save the feedback
+    const newFeedback = await new Feedback({
+      userId,
+      hr: req.user.id,
+      content,
+    }).save();
+
+    // Populate the hr field after saving
+    const populatedFeedback = await Feedback.findById(newFeedback._id).populate(
+      "hr",
+      "firstName lastName"
+    );
+
+    res.status(200).json({
+      message: "Feedback created successfully",
+      feedback: populatedFeedback,
+    });
+  } catch (error) {
+    console.error(error);
+    return next(errorHandler(500, "Internal Server Error"));
   }
 };
