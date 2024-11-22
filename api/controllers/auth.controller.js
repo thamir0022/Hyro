@@ -116,19 +116,30 @@ export const signOut = async (req, res) => {
 };
 
 export const editProfile = async (req, res) => {
-  const { firstName, lastName, oldPassword, newPassword, confirmPassword } = req.body;
+  const { firstName, lastName, oldPassword, newPassword, confirmPassword } =
+    req.body;
+
+  // Validate input: Ensure at least one field is provided for update
+  if (
+    !firstName &&
+    !lastName &&
+    !oldPassword &&
+    !newPassword &&
+    !confirmPassword
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Please provide at least one field to update",
+    });
+  }
 
   try {
-    // Step 1: Validate input data
-    if (!firstName && !lastName && !oldPassword && !newPassword && !confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide at least one field to update",
-      });
-    }
+    // Determine the user ID based on role
+    const userId =
+      req.user.role === "admin" ? req.user.query || req.user.id : req.user.id;
 
-    // Step 2: Find the user by ID
-    const user = await User.findById(req.user.id);
+    // Fetch the user
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -136,15 +147,17 @@ export const editProfile = async (req, res) => {
       });
     }
 
-    // Step 3: Handle password update if provided
+    // Handle password updates
     if (oldPassword || newPassword || confirmPassword) {
       if (!oldPassword || !newPassword || !confirmPassword) {
         return res.status(400).json({
           success: false,
-          message: "Old password, new password, and confirm password are required",
+          message:
+            "Old password, new password, and confirm password are required",
         });
       }
 
+      // Validate old password
       const isMatch = await bcrypt.compare(oldPassword, user.password);
       if (!isMatch) {
         return res.status(400).json({
@@ -153,6 +166,7 @@ export const editProfile = async (req, res) => {
         });
       }
 
+      // Check if new password matches confirm password
       if (newPassword !== confirmPassword) {
         return res.status(400).json({
           success: false,
@@ -160,6 +174,7 @@ export const editProfile = async (req, res) => {
         });
       }
 
+      // Ensure new password meets length requirement
       if (newPassword.length < 8) {
         return res.status(400).json({
           success: false,
@@ -167,29 +182,31 @@ export const editProfile = async (req, res) => {
         });
       }
 
+      // Hash the new password
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(newPassword, salt);
     }
 
-    // Step 4: Update user data
+    // Update other fields
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
 
+    // Save updated user
     await user.save();
 
-    const { password: _, ...userData } = user._doc;
+    // Exclude sensitive data like password
+    const { password, performance, totalPerformance, position, joiningDate, _id, ...updatedUser } = user.toObject();
 
-    // Respond with success and updated user data
     return res.status(200).json({
       success: true,
       message: "Profile updated successfully",
-      user: userData,
+      user: {id: _id, ...updatedUser},
     });
   } catch (error) {
-    console.error("Profile update error:", error);
+    console.error("Error updating profile:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-    });
-  }
+    });
+  }
 };
