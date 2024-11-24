@@ -46,6 +46,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import SideFooter from "./sideBar-footer";
 
 // Define menu items for different roles
 interface Item {
@@ -109,6 +110,7 @@ const AppSidebar = () => {
   const { user, logout } = useUser();
   const navigate = useNavigate();
   const { open } = useSidebar();
+  
 
   const handleSignout = async () => {
     try {
@@ -121,6 +123,9 @@ const AppSidebar = () => {
       console.log(error);
     }
   };
+
+  
+
 
   const items =
     user?.role === "admin"
@@ -188,7 +193,7 @@ const AppSidebar = () => {
           )}
         </SidebarMenu>
       </SidebarContent>
-      {user && (
+      {/* {user && (
         <SidebarFooter>
           <Popover>
             <PopoverTrigger>
@@ -235,6 +240,8 @@ const AppSidebar = () => {
                 <Dialog>
                   <DialogTrigger className="w-full">
                     <Button className="w-full">Sign Out</Button>
+                    <Button className="w-full mt-2 mb-2 bg-green-500 text-white hover:bg-green-600">Edit Profile</Button>
+
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
@@ -254,7 +261,8 @@ const AppSidebar = () => {
             </PopoverContent>
           </Popover>
         </SidebarFooter>
-      )}
+      )} */}
+      <SideFooter/>
     </Sidebar>
   );
 };
