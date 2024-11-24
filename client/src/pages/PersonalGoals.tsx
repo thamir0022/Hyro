@@ -12,12 +12,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { Loader } from "lucide-react";
 
 const PersonalGoals = () => {
   const [goalTitle, setGoalTitle] = useState("");
   const [goalDescription, setGoalDescription] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoalsLoading, setIsGoalsLoading] = useState(false);
   const [goals, setGoals] = useState<any[]>([]);
 
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -25,6 +27,7 @@ const PersonalGoals = () => {
 
   useEffect(() => {
     const fetchGoals = async () => {
+      setIsGoalsLoading(true);
       try {
         const res = await fetch("/api/employee/all-goal");
         const data = await res.json();
@@ -41,6 +44,8 @@ const PersonalGoals = () => {
           description: "Could not load goals. Please try again.",
           variant: "destructive",
         });
+      }finally{
+        setIsGoalsLoading(false);
       }
     };
 
@@ -176,7 +181,11 @@ const PersonalGoals = () => {
         {/* Goals List */}
         <div className="col-span-3">
           <h2 className="text-center text-3xl font-semibold my-3">My Goals</h2>
-          {goals.length > 0 ? (
+          {isGoalsLoading ? (
+            <div className="flex size-full items-center justify-center">
+              <Loader className="mx-auto h-6 w-6 animate-spin" />
+            </div>
+          ) : goals.length > 0 ? (
             goals.map((goal, index) => (
               <Card key={goal._id || index} className="mb-4">
                 <CardHeader>

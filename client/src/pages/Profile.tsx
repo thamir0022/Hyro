@@ -270,7 +270,7 @@ export default function Employee() {
 
   if (isLoading) {
     return (
-      <div className="h-full w-full flex items-center justify-center">
+      <div className="size-full flex items-center justify-center">
         <Loader className="h-6 w-6 animate-spin" />
       </div>
     );

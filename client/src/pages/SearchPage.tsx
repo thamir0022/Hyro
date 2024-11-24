@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useDebounce } from "use-debounce"
-import { Loader2, Search } from "lucide-react"
+import { Loader, Loader2, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -80,9 +80,10 @@ export default function SearchPage() {
             Search
           </Button>
         </div>
+        {searchTerm.length === 0 && <p className="text-sm text-center font-semibold text-muted-foreground">Type a employee name, email or ID in the search bar</p>}
         {isLoading ? (
           <div className="flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <Loader className="size-6 animate-spin" />
           </div>
         ) : employees.length > 0 ? (
           <Table>

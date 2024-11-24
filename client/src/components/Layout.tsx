@@ -7,7 +7,7 @@ const Layout = ({ children }: { children: ReactNode }) => (
     <AppSidebar />
     <div className="size-full flex flex-col">
       <Header />
-      <main className="flex flex-col w-full min-h-[100vh-4rem]">{children}</main>
+      <main className="flex flex-col w-full min-h-[calc(100vh-4rem)]">{children}</main>
     </div>
   </section>
 );
