@@ -6,6 +6,7 @@ import employeeCTCModel from "../models/employeeCTC.model.js";
 import LeaveApplication from "../models/leaveApplication.model.js";
 import PersonalGoal from "../models/personalGoal.model.js";
 import Feedback from "../models/feedback.model.js";
+import Mail from "../models/mail.model.js";
 
 export const getEmployee = async (req, res, next) => {
   try {
@@ -222,8 +223,16 @@ export const getLeaveApplicationStatus = async (req, res, next) => {
     const currentDate = new Date();
 
     // Get the start and end date of the current month
-    const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // First day of current month
-    const currentMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // Last day of current month
+    const currentMonthStart = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      1
+    ); // First day of current month
+    const currentMonthEnd = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth() + 1,
+      0
+    ); // Last day of current month
 
     // Find leave applications for the current month
     const leaveApplications = await LeaveApplication.find({
@@ -232,9 +241,15 @@ export const getLeaveApplicationStatus = async (req, res, next) => {
     });
 
     // Count the leave applications by status
-    const approvedLeaves = leaveApplications.filter((leave) => leave.status === "Approved").length;
-    const pendingLeaves = leaveApplications.filter((leave) => leave.status === "Pending").length;
-    const rejectedLeaves = leaveApplications.filter((leave) => leave.status === "Rejected").length;
+    const approvedLeaves = leaveApplications.filter(
+      (leave) => leave.status === "Approved"
+    ).length;
+    const pendingLeaves = leaveApplications.filter(
+      (leave) => leave.status === "Pending"
+    ).length;
+    const rejectedLeaves = leaveApplications.filter(
+      (leave) => leave.status === "Rejected"
+    ).length;
 
     // Check if the employee has exceeded the allowed leave limit (e.g., 4 leaves in the current month)
     const totalLeaves = approvedLeaves + pendingLeaves; // Pending ones are not approved yet, but still count towards the limit
@@ -244,7 +259,7 @@ export const getLeaveApplicationStatus = async (req, res, next) => {
         approvedLeaves,
         pendingLeaves,
         rejectedLeaves,
-        appliedLeaves: leaveApplications.length
+        appliedLeaves: leaveApplications.length,
       });
     }
 
@@ -261,7 +276,8 @@ export const getLeaveApplicationStatus = async (req, res, next) => {
     });
   } catch (error) {
     return res.status(500).json({
-      message: error.message || "Internal server error. Please try again later.",
+      message:
+        error.message || "Internal server error. Please try again later.",
     });
   }
 };
@@ -514,5 +530,90 @@ export const getFeedbacks = async (req, res, next) => {
   } catch (error) {
     // Handle unexpected errors
     next(errorHandler(500, "Internal Server Error"));
+  }
+};
+
+
+export const getMails = async (req, res, next) => {
+  try {
+    const filter = req.query.filter || "all"; // Can be "sent", "received", or "all"
+
+    let receivedMails = [];
+    let sentMails = [];
+
+    if (filter === "received" || filter === "all") {
+      receivedMails = await Mail.find({ receiver: req.user.id })
+        .populate("sender", "firstName lastName")
+        .sort({ createdAt: -1 });
+    }
+
+    if (filter === "sent" || filter === "all") {
+      sentMails = await Mail.find({ sender: req.user.id })
+        .populate("receiver", "firstName lastName")
+        .sort({ createdAt: -1 });
+    }
+
+    const response = {};
+
+    // Attach data based on the filter
+    if (filter === "received" && receivedMails.length) {
+      response.receivedMails = receivedMails;
+    } else if (filter === "sent" && sentMails.length) {
+      response.sentMails = sentMails;
+    } else if (filter === "all") {
+      if (receivedMails.length) response.receivedMails = receivedMails;
+      if (sentMails.length) response.sentMails = sentMails;
+    }
+
+    // If no data is found, send 404
+    if (!Object.keys(response).length) {
+      return next(errorHandler(404, "No mails available for you"));
+    }
+
+    res.status(200).json({
+      success: true,
+      ...response
+    });
+  } catch (error) {
+    console.error(error);
+    next(errorHandler(500, "An error occurred while fetching mails"));
+  }
+};
+
+
+export const sendMail = async (req, res, next) => {
+  const { sender, receiver, subject, content } = req.body;
+
+  if (!sender || !receiver || !subject || !content) {
+    return next(errorHandler(400, "All fields are required"));
+  }
+
+  if(!isValidObjectId(sender) || !isValidObjectId(receiver)){
+    return next(errorHandler(400, "Invalid sender or receiver field"));
+  }
+
+  if(sender !== req.user.id){
+    return next(errorHandler(401, "You can't send an email with this user id"));
+  }
+
+  const receiverUser = await User.findById(receiver);
+
+  if(!["admin", "hr"].includes(receiverUser.role)){
+    return next(errorHandler(403, "Invalid sender, You can only send emails to HR"));
+  }
+
+  try {
+    const newMail = new Mail({
+      sender,
+      receiver,
+      subject,
+      content,
+    });
+
+    await newMail.save();
+
+    res.status(200).json({ success: true, message: "Mail sent successfully" });
+  } catch (error) {
+    console.log(error);
   }
 };

@@ -14,6 +14,8 @@ import {
   getAllLeaveApplications,
   applyLeave,
   getLeaveApplicationStatus,
+  sendMail,
+  getMails,
 } from "../controllers/employee.controller.js";
 
 const router = express();
@@ -31,5 +33,7 @@ router.patch("/edit-goal/:goalId?", verifyToken, editPersonalGoal);
 router.get("/all-goal", verifyToken, getPersonalGoal);
 router.delete("/delete-goal/:goalId?", verifyToken, deletePersonalGoal);
 router.get("/feedbacks", verifyToken, getFeedbacks);
+router.post("/send-mail", verifyToken, sendMail);
+router.get("/get-mails", verifyToken, getMails);
 
 export default router;

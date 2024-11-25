@@ -2,6 +2,7 @@ import { isValidObjectId } from "mongoose";
 import User from "../models/user.model.js";
 import { errorHandler } from "../utils/index.js";
 import bcrypt from "bcryptjs";
+import Mail from "../models/mail.model.js";
 
 export const getAllHR = async (req, res, next) => {
   const { role } = req.user;
@@ -112,9 +113,13 @@ export const editHR = async (req, res, next) => {
     );
   }
 
-  const missingFields = ["firstName", "lastName", "email", "password", "role"].filter(
-    (field) => !req.body[field]
-  );
+  const missingFields = [
+    "firstName",
+    "lastName",
+    "email",
+    "password",
+    "role",
+  ].filter((field) => !req.body[field]);
   if (missingFields.length > 0) {
     return next(
       errorHandler(400, `Missing required fields: ${missingFields.join(", ")}`)
@@ -224,3 +229,4 @@ export const search = async (req, res, next) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+

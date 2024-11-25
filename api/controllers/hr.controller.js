@@ -8,6 +8,7 @@ import LeaveApplication from "../models/leaveApplication.model.js";
 import moment from "moment";
 import Attendance from "../models/attendance.model.js";
 import Feedback from "../models/feedback.model.js";
+import Mail from "../models/mail.model.js";
 
 export const getEmployees = async (req, res, next) => {
   try {
@@ -536,5 +537,115 @@ export const addFeedback = async (req, res, next) => {
   } catch (error) {
     console.error(error);
     return next(errorHandler(500, "Internal Server Error"));
+  }
+};
+
+
+export const sendMail = async (req, res, next) => {
+  const { sender, receiver, subject, content } = req.body;
+
+  if(!["admin", "hr"].includes(req.user.role)){
+    return next(errorHandler(403, "You are not allowed to access this api"));
+  }
+
+  if (!sender || !receiver || !subject || !content) {
+    return next(errorHandler(400, "All fields are required"));
+  }
+
+  if(!isValidObjectId(sender) || !isValidObjectId(receiver)){
+    return next(errorHandler(400, "You can't send an email with these user id"));
+  }
+
+  if(sender !== req.user.id){
+    return next(errorHandler(401, "You are not allowed to send an email with this user id"));
+  }
+
+  try {
+    const newMail = new Mail({
+      sender,
+      receiver,
+      subject,
+      content,
+    });
+
+    await newMail.save();
+
+    res.status(200).json({ success: true, message: "Mail sent successfully" });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+
+export const getMails = async (req, res, next) => {
+  try {
+    const filter = req.query.filter || "all"; // Can be "sent", "received", or "all"
+
+    let receivedMails = [];
+    let sentMails = [];
+
+    if (filter === "received" || filter === "all") {
+      receivedMails = await Mail.find({ receiver: req.user.id })
+        .populate("sender", "firstName lastName")
+        .sort({ createdAt: -1 });
+    }
+
+    if (filter === "sent" || filter === "all") {
+      sentMails = await Mail.find({ sender: req.user.id })
+        .populate("receiver", "firstName lastName")
+        .sort({ createdAt: -1 });
+    }
+
+    const response = {};
+
+    // Attach data based on the filter
+    if (filter === "received" && receivedMails.length) {
+      response.receivedMails = receivedMails;
+    } else if (filter === "sent" && sentMails.length) {
+      response.sentMails = sentMails;
+    } else if (filter === "all") {
+      if (receivedMails.length) response.receivedMails = receivedMails;
+      if (sentMails.length) response.sentMails = sentMails;
+    }
+
+    // If no data is found, send 404
+    if (!Object.keys(response).length) {
+      return next(errorHandler(404, "No mails available for you"));
+    }
+
+    res.status(200).json({
+      success: true,
+      ...response
+    });
+  } catch (error) {
+    console.error(error);
+    next(errorHandler(500, "An error occurred while fetching mails"));
+  }
+};
+
+export const getEmployeeMails = async (req, res, next) => {
+  // Ensure only admins or HRs can access this API
+  if (!["admin", "hr"].includes(req.user.role)) {
+    return next(errorHandler(403, "You are not allowed to access this API"));
+  }
+
+  try {
+    // Fetch employees with email addresses, sorted in ascending order by email
+    const employees = await User.find({ role: "employee" })
+      .select("_id email") // Select both _id and email fields
+      .sort({ email: 1 }); // Sort by email in ascending order
+
+    // Check if there are any employees
+    if (!employees.length) {
+      return next(errorHandler(404, "No employees found"));
+    }
+
+    res.status(200).json({
+      success: true,
+      employees, // Return array of employees with _id and email
+    });
+  } catch (error) {
+    console.error(error);
+    next(errorHandler(500, "An error occurred while fetching employee emails"));
   }
 };

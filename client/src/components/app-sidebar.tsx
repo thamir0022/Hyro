@@ -50,7 +50,7 @@ const hrItems: Item[] = [
 
 const employeeItems: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: ChartPie },
-  { title: "Inbox", url: "#", icon: Inbox},
+  { title: "Inbox", url: "/inbox", icon: Inbox},
   { title: "Personal Goals", url: "/add-goals", icon: Goal },
   { title: "Apply A Leave", url: "/apply-leave", icon: SquarePen},
   { title: "Leave Applications", url: "/all-leaves", icon: BookOpen},
@@ -81,7 +81,7 @@ const adminItems: Item[] = [
       { title: "New HR", url: "/create/hr" },
     ],
   },
-  { title: "Inbox", url: "#", icon: Inbox },
+  { title: "Inbox", url: "/inbox", icon: Inbox },
   { title: "Calendar", url: "#", icon: Calendar },
   { title: "Search", url: "/search", icon: Search },
   { title: "Settings", url: "#", icon: Settings },

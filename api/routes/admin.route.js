@@ -2,13 +2,13 @@ import express from 'express';
 import { verifyToken } from '../utils/index.js';
 import { addHr, deleteHR, editHR, getAllHR, getHR, search } from '../controllers/admin.controller.js';
 
-const app = express();
+const router = express();
 
-app.get("/hrs", verifyToken, getAllHR);
-app.post("/add-hr", verifyToken, addHr);
-app.get("/hr/:id?", verifyToken, getHR);
-app.put("/hr/edit", verifyToken, editHR);
-app.delete("/delete-hr/:id?", verifyToken, deleteHR);
-app.get("/search", verifyToken, search);  
+router.get("/hrs", verifyToken, getAllHR);
+router.post("/add-hr", verifyToken, addHr);
+router.get("/hr/:id?", verifyToken, getHR);
+router.put("/hr/edit", verifyToken, editHR);
+router.delete("/delete-hr/:id?", verifyToken, deleteHR);
+router.get("/search", verifyToken, search);  
 
-export default app;
+export default router;

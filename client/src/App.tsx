@@ -21,6 +21,7 @@ import LeaveApplication from "./pages/LeaveApplicationPage";
 import AppliedLeaves from "./pages/AppliedLeavesPage";
 import HRLeaveApplications from "./pages/AllLeaveApplications";
 import PersonalGoals from "./pages/PersonalGoals";
+import ViewEmails from "./pages/AllMailsPage";
 
 const App = () => {
   return (
@@ -45,6 +46,7 @@ const App = () => {
               <Route path="/create/employee" element={<AddEmployee />} />
               <Route path="/create/hr" element={<AddHR />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/inbox" element={<ViewEmails />} />
               <Route path="/employee-leave-applications" element={<HRLeaveApplications />} />
             </Route>
             <Route path="/" element={<HomePage />} />

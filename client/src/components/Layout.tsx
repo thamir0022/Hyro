@@ -3,7 +3,7 @@ import Header from "./Header";
 import AppSidebar from "./app-sidebar";
 
 const Layout = ({ children }: { children: ReactNode }) => (
-  <section className="w-screen h-screen flex scroll-smooth">
+  <section className="w-screen min-h-screen flex scroll-smooth">
     <AppSidebar />
     <div className="size-full flex flex-col">
       <Header />
