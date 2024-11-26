@@ -5,7 +5,8 @@ export default {
   theme: {
   	fontFamily: {
   		libre: ["Libre Baskerville", "serif"],
-  		poppins: ["Poppins", "sans-serif"]
+  		poppins: ["Poppins", "sans-serif"],
+  		notosans: ["Noto Sans", "sans-serif"]
   	},
   	extend: {
   		borderRadius: {

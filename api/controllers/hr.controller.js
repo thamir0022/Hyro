@@ -630,7 +630,6 @@ export const getMails = async (req, res, next) => {
   }
 };
 
-
 export const getEmployeeMails = async (req, res, next) => {
   // Ensure only admins or HRs can access this API
   if (!["admin", "hr"].includes(req.user.role)) {
@@ -676,11 +675,20 @@ export const markAsRead = async (req, res, next) => {
     return next(errorHandler(400, errorMessage));
   }
   try {
-    await Mail.findByIdAndUpdate(mailId, { status, readAt: status === "read" ? new Date() : null });
+    const updatedMail = await Mail.findByIdAndUpdate(
+      mailId,
+      { status, readAt: status === "read" ? new Date() : null },
+      { new: true }
+    );
+
+    if (!updatedMail) {
+      return next(errorHandler(404, "Email not found"));
+    }
 
     res.status(200).json({
       success: true,
       message: `Mail status updated to ${status}`,
+      updatedMail
     });
   } catch (error) {
     console.log(error);

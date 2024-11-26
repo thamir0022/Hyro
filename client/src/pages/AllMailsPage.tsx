@@ -97,7 +97,7 @@ const EmailCard: React.FC<{
     <Card key={email._id} className="mb-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Subject: <p className="capitalize text-xl">{email.subject}</p>
+          Subject <p className="capitalize text-xl">{email.subject}</p>
         </CardTitle>
         <CardDescription>
           From: {senderName} | To: {receiverName}
@@ -257,9 +257,22 @@ const ViewEmailsPage: React.FC = () => {
         body: JSON.stringify({ mailId, status: "read" }),
       });
 
-      if (!res.ok) throw new Error("Failed to mark email as read");
-    } catch (err) {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Something went wrong");
+
+      setEmails((prevEmails) =>
+        prevEmails.map((email) =>
+          email._id === mailId ? data.updatedMail : email
+        )
+      );
+      
+    } catch (err: any) {
       console.error(err);
+      toast({
+        title: "Failed to mark email as read",
+        description: err.message,
+        variant: "destructive"
+      })
     } finally {
       setMarkingRead(null);
     }
