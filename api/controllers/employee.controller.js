@@ -541,16 +541,18 @@ export const getMails = async (req, res, next) => {
     let receivedMails = [];
     let sentMails = [];
 
+    // Fetch and sort received mails
     if (filter === "received" || filter === "all") {
       receivedMails = await Mail.find({ receiver: req.user.id })
         .populate("sender", "firstName lastName")
-        .sort({ createdAt: -1 });
+        .sort({ readAt: 1, createdAt: -1 }); // Sort unread first, then latest
     }
 
+    // Fetch and sort sent mails
     if (filter === "sent" || filter === "all") {
       sentMails = await Mail.find({ sender: req.user.id })
         .populate("receiver", "firstName lastName")
-        .sort({ createdAt: -1 });
+        .sort({ readAt: 1, createdAt: -1 }); // Sort unread first, then latest
     }
 
     const response = {};
@@ -572,7 +574,7 @@ export const getMails = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      ...response
+      ...response,
     });
   } catch (error) {
     console.error(error);
@@ -580,26 +582,27 @@ export const getMails = async (req, res, next) => {
   }
 };
 
-
 export const sendMail = async (req, res, next) => {
   const { sender, receiver, subject, content } = req.body;
+
 
   if (!sender || !receiver || !subject || !content) {
     return next(errorHandler(400, "All fields are required"));
   }
 
-  if(!isValidObjectId(sender) || !isValidObjectId(receiver)){
-    return next(errorHandler(400, "Invalid sender or receiver field"));
+  if (!isValidObjectId(sender) || !isValidObjectId(receiver)) {
+    return next(
+      errorHandler(400, "You can't send an email with these user id")
+    );
   }
 
-  if(sender !== req.user.id){
-    return next(errorHandler(401, "You can't send an email with this user id"));
-  }
-
-  const receiverUser = await User.findById(receiver);
-
-  if(!["admin", "hr"].includes(receiverUser.role)){
-    return next(errorHandler(403, "Invalid sender, You can only send emails to HR"));
+  if (sender !== req.user.id) {
+    return next(
+      errorHandler(
+        401,
+        "You are not allowed to send an email with this user id"
+      )
+    );
   }
 
   try {
@@ -615,5 +618,67 @@ export const sendMail = async (req, res, next) => {
     res.status(200).json({ success: true, message: "Mail sent successfully" });
   } catch (error) {
     console.log(error);
+  }
+};
+
+
+export const markAsRead = async (req, res, next) => {
+  const { status, mailId } = req.body;
+
+  if (
+    !status ||
+    !["sent", "read", "archived"].includes(status) ||
+    !mailId ||
+    !isValidObjectId(mailId)
+  ) {
+    const errorMessage = !status
+      ? "Status is required!"
+      : !["sent", "read", "archived"].includes(status)
+      ? `Invalid status: '${status}'. Status should be one of sent, read, or archived.`
+      : "Invalid mailId provided.";
+
+    return next(errorHandler(400, errorMessage));
+  }
+  try {
+    const updatedMail = await Mail.findByIdAndUpdate(
+      mailId,
+      { status, readAt: status === "read" ? new Date() : null },
+      { new: true }
+    );
+
+    if (!updatedMail) {
+      return next(errorHandler(404, "Email not found"));
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Mail status updated to ${status}`,
+      updatedMail
+    });
+  } catch (error) {
+  console.log(error);
+  }
+};
+
+
+export const getHrMails = async (req, res, next) => {
+  try {
+    // Fetch hr with email addresses, sorted in ascending order by email
+    const hr = await User.find({ role: { $in: ["hr", "admin"] }})
+      .select("_id email") // Select both _id and email fields
+      .sort({ email: 1 }); // Sort by email in ascending order
+
+    // Check if there are any employees
+    if (!hr.length) {
+      return next(errorHandler(404, "No HR found"));
+    }
+
+    res.status(200).json({
+      success: true,
+      user: hr, // Return array of hr with _id and email
+    });
+  } catch (error) {
+    console.error(error);
+    next(errorHandler(500, "An error occurred while fetching employee emails"));
   }
 };

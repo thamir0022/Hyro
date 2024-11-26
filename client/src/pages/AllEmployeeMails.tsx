@@ -153,7 +153,7 @@ const ViewEmailsPage: React.FC = () => {
       setEmails([]);
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/hr/get-mails?filter=${filter}`);
+        const response = await fetch(`/api/${user?.role === "admin" || user?.role === "hr" ? "hr" : "employee"}/get-mails?filter=${filter}`);
         const data: ApiResponse = await response.json();
 
         if (!response.ok) {
@@ -190,7 +190,7 @@ const ViewEmailsPage: React.FC = () => {
   useEffect(() => {
     const fetchEmployeeMails = async () => {
       try {
-        const res = await fetch("/api/hr/employee-mails");
+        const res = await fetch(`/api/${user?.role === "admin" || user?.role === "hr" ? "hr" : "employee"}/hr-mails`);
         const data = await res.json();
         if (res.ok) {
           setEmployeeMails(
@@ -206,7 +206,10 @@ const ViewEmailsPage: React.FC = () => {
     };
 
     fetchEmployeeMails();
+
   }, []);
+
+  console.log(employeeMails)
 
   const handleFilterChange = (value: string) => {
     setSearchParams({ filter: value });
@@ -221,7 +224,7 @@ const ViewEmailsPage: React.FC = () => {
 
   const handleSendMail = async () => {
     try {
-      const res = await fetch("/api/hr/send-mail", {
+      const res = await fetch(`/api/${user?.role === "admin" || user?.role === "hr" ? "hr" : "employee"}/send-mail`, {
         headers: { "Content-Type": "application/json" },
         method: "POST",
         body: JSON.stringify(mailData),
@@ -251,7 +254,7 @@ const ViewEmailsPage: React.FC = () => {
   const handleMarkAsRead = async (mailId: string) => {
     setMarkingRead(mailId);
     try {
-      const res = await fetch("/api/hr/mark-as-read", {
+      const res = await fetch(`/api/${user?.role === "admin" || user?.role === "hr" ? "hr" : "employee"}/mark-as-read`, {
         headers: { "Content-Type": "application/json" },
         method: "PATCH",
         body: JSON.stringify({ mailId, status: "read" }),

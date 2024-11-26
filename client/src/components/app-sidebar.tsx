@@ -1,7 +1,6 @@
 import {
   Calendar,
   ChevronDown,
-  Inbox,
   Search,
   Settings,
   UsersRound,
@@ -10,6 +9,10 @@ import {
   SquarePen,
   BookOpen,
   Goal,
+  Mail,
+  MessageSquare,
+  Pen,
+  Flag,
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,19 +44,18 @@ interface Item {
 const hrItems: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: ChartPie },
   { title: "Employees", url: "/employees", icon: Users },
-  { title: "Inbox", url: "#", icon: Inbox },
-  { title: "Leave Applications", url: "/employee-leave-applications", icon: Inbox },
-  { title: "Calendar", url: "#", icon: Calendar },
+  { title: "Inbox", url: "#", icon: Mail },
+  { title: "Leave Applications", url: "/employee-leave-applications", icon: MessageSquare },
   { title: "Search", url: "/search", icon: Search },
   { title: "Settings", url: "#", icon: Settings },
 ];
 
 const employeeItems: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: ChartPie },
-  { title: "Inbox", url: "/inbox", icon: Inbox},
-  { title: "Personal Goals", url: "/add-goals", icon: Goal },
-  { title: "Apply A Leave", url: "/apply-leave", icon: SquarePen},
-  { title: "Leave Applications", url: "/all-leaves", icon: BookOpen},
+  { title: "Inbox", url: "/inbox", icon: Mail},
+  { title: "Personal Goals", url: "/add-goals", icon: Flag },
+  { title: "Apply A Leave", url: "/apply-leave", icon: Pen},
+  { title: "Leave Applications", url: "/all-leaves", icon: MessageSquare},
   { title: "Settings", url: "#", icon: Settings },
 ];
 
@@ -81,8 +83,8 @@ const adminItems: Item[] = [
       { title: "New HR", url: "/create/hr" },
     ],
   },
-  { title: "Inbox", url: "/inbox", icon: Inbox },
-  { title: "Calendar", url: "#", icon: Calendar },
+  { title: "Inbox", url: "/inbox", icon: Mail },
+  { title: "Leave Applications", url: "/employee-leave-applications", icon: MessageSquare },
   { title: "Search", url: "/search", icon: Search },
   { title: "Settings", url: "#", icon: Settings },
 ];

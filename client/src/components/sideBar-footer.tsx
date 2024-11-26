@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { SidebarFooter, useSidebar } from "./ui/sidebar";
 import { useNavigate } from "react-router-dom";
@@ -196,12 +196,14 @@ const SideFooter = () => {
                           value={profileData.firstName}
                           onChange={handleChange}
                           placeholder="First Name"
+                          className="text-black"
                         />
                         <Input
                           name="lastName"
                           value={profileData.lastName}
                           onChange={handleChange}
                           placeholder="Last Name"
+                          className="text-black"
                         />
                         </div>
                         <Input
@@ -210,6 +212,7 @@ const SideFooter = () => {
                           value={profileData.oldPassword}
                           onChange={handleChange}
                           placeholder="Old Password"
+                          className="text-black"
                         />
                         <div className="grid grid-cols-2 gap-3">
                           <Input
@@ -218,6 +221,7 @@ const SideFooter = () => {
                             value={profileData.newPassword}
                             onChange={handleChange}
                             placeholder="New Password"
+                            className="text-black"
                           />
                           <Input
                             type="password"
@@ -225,6 +229,7 @@ const SideFooter = () => {
                             value={profileData.confirmPassword}
                             onChange={handleChange}
                             placeholder="Confirm Password"
+                            className="text-black"
                           />
                         </div>
                       </div>

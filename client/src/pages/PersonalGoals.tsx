@@ -21,7 +21,6 @@ const PersonalGoals = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoalsLoading, setIsGoalsLoading] = useState(false);
   const [goals, setGoals] = useState<any[]>([]);
-
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editedGoal, setEditedGoal] = useState<any>({});
 
@@ -44,7 +43,7 @@ const PersonalGoals = () => {
           description: "Could not load goals. Please try again.",
           variant: "destructive",
         });
-      }finally{
+      } finally {
         setIsGoalsLoading(false);
       }
     };
@@ -60,30 +59,30 @@ const PersonalGoals = () => {
   const handleSave = async (goalId: string, index: number) => {
     try {
       setIsLoading(true);
-  
+
       const response = await fetch(`/api/employee/edit-goal/${goalId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editedGoal),
       });
-  
+
       if (!response.ok) {
         throw new Error("Failed to update goal");
       }
-  
+
       const data = await response.json();
-  
+
       setGoals((prevGoals) => {
         const updatedGoals = [...prevGoals];
         updatedGoals[index] = data.updatedGoal; // Replace the goal with the updated one
         return updatedGoals;
       });
-  
+
       toast({
         title: "Success",
         description: "Goal updated successfully!",
       });
-  
+
       // Clear editing state
       setEditIndex(null);
       setEditedGoal({});
@@ -98,7 +97,6 @@ const PersonalGoals = () => {
       setIsLoading(false);
     }
   };
-  
 
   const handleDelete = async (goalId: string, index: number) => {
     try {
@@ -144,7 +142,11 @@ const PersonalGoals = () => {
       const response = await fetch("/api/employee/add-goal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: goalTitle, description: goalDescription, targetDate }),
+        body: JSON.stringify({
+          title: goalTitle,
+          description: goalDescription,
+          targetDate,
+        }),
       });
 
       if (!response.ok) {
@@ -194,14 +196,20 @@ const PersonalGoals = () => {
                       <Input
                         value={editedGoal.title || ""}
                         onChange={(e) =>
-                          setEditedGoal((prev: any) => ({ ...prev, title: e.target.value }))
+                          setEditedGoal((prev: any) => ({
+                            ...prev,
+                            title: e.target.value,
+                          }))
                         }
                         placeholder="Goal Title"
                       />
                       <Input
                         value={editedGoal.description || ""}
                         onChange={(e) =>
-                          setEditedGoal((prev: any) => ({ ...prev, description: e.target.value }))
+                          setEditedGoal((prev: any) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
                         }
                         placeholder="Goal Description"
                       />
@@ -209,7 +217,10 @@ const PersonalGoals = () => {
                         type="date"
                         value={editedGoal.targetDate?.split("T")[0] || ""}
                         onChange={(e) =>
-                          setEditedGoal((prev: any) => ({ ...prev, targetDate: e.target.value }))
+                          setEditedGoal((prev: any) => ({
+                            ...prev,
+                            targetDate: e.target.value,
+                          }))
                         }
                       />
                     </>
@@ -225,20 +236,36 @@ const PersonalGoals = () => {
                 </CardHeader>
                 <CardFooter className="flex justify-between">
                   {editIndex === index ? (
-                    <Button onClick={() => handleSave(goal._id, index)} className="bg-green-500">
-                      Save
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => handleSave(goal._id, index)}
+                        className="bg-green-500"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        onClick={() => setEditIndex(-1)}
+                        className="bg-yellow-500"
+                      >
+                        Cancel
+                      </Button>
+                    </>
                   ) : (
-                    <Button variant="outline" onClick={() => handleEdit(index, goal)}>
-                      Edit
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleEdit(index, goal)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        className="bg-red-500"
+                        onClick={() => handleDelete(goal._id, index)}
+                      >
+                        Delete
+                      </Button>
+                    </>
                   )}
-                  <Button
-                    className="bg-red-500"
-                    onClick={() => handleDelete(goal._id, index)}
-                  >
-                    Delete
-                  </Button>
                 </CardFooter>
               </Card>
             ))
@@ -249,7 +276,9 @@ const PersonalGoals = () => {
 
         {/* Add Goal Form */}
         <div className="col-span-5">
-        <h2 className="text-center text-3xl font-semibold my-3">Add A New Goal</h2>
+          <h2 className="text-center text-3xl font-semibold my-3">
+            Add A New Goal
+          </h2>
           <Card className="w-full">
             <CardHeader></CardHeader>
             <CardContent>

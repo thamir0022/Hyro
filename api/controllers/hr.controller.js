@@ -649,7 +649,7 @@ export const getEmployeeMails = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      employees, // Return array of employees with _id and email
+      user: employees, // Return array of employees with _id and email
     });
   } catch (error) {
     console.error(error);

@@ -1,6 +1,6 @@
 import { useState, useEffect, ChangeEvent } from "react";
-import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronDown, ChevronUp, Loader } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import Layout from "@/components/Layout";
 
 interface Employee {
   _id: string;
@@ -57,7 +58,9 @@ export default function HRLeaveApplications() {
   const [sortKey, setSortKey] = useState<SortKey>("submissionDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [remainingCharacters, setRemainingCharacters] = useState<{ [key: string]: number }>({});
+  const [remainingCharacters, setRemainingCharacters] = useState<{
+    [key: string]: number;
+  }>({});
 
   useEffect(() => {
     const fetchLeaveApplications = async () => {
@@ -195,184 +198,192 @@ export default function HRLeaveApplications() {
     }));
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>All Leave Applications</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-end mb-4">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {filteredApplications.length === 0 ? (
-            <p className="text-center text-muted-foreground">
-              No leave applications found.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Leave Type</TableHead>
-                  <TableHead
-                    onClick={() => handleSort("startDate")}
-                    className="cursor-pointer"
-                  >
-                    Start Date{" "}
-                    {sortKey === "startDate" &&
-                      (sortOrder === "asc" ? (
-                        <ChevronUp className="inline" />
-                      ) : (
-                        <ChevronDown className="inline" />
-                      ))}
-                  </TableHead>
-                  <TableHead>End Date</TableHead>
-                  <TableHead
-                    onClick={() => handleSort("totalDays")}
-                    className="cursor-pointer"
-                  >
-                    Total Days{" "}
-                    {sortKey === "totalDays" &&
-                      (sortOrder === "asc" ? (
-                        <ChevronUp className="inline" />
-                      ) : (
-                        <ChevronDown className="inline" />
-                      ))}
-                  </TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead
-                    onClick={() => handleSort("status")}
-                    className="cursor-pointer"
-                  >
-                    Status{" "}
-                    {sortKey === "status" &&
-                      (sortOrder === "asc" ? (
-                        <ChevronUp className="inline" />
-                      ) : (
-                        <ChevronDown className="inline" />
-                      ))}
-                  </TableHead>
-                  <TableHead
-                    onClick={() => handleSort("submissionDate")}
-                    className="cursor-pointer"
-                  >
-                    Submission Date{" "}
-                    {sortKey === "submissionDate" &&
-                      (sortOrder === "asc" ? (
-                        <ChevronUp className="inline" />
-                      ) : (
-                        <ChevronDown className="inline" />
-                      ))}
-                  </TableHead>
-                  <TableHead>Comments</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredApplications.map((application) => (
-                  <TableRow key={application._id}>
-                    <TableCell>
-                      {application.employeeId.firstName}{" "}
-                      {application.employeeId.lastName}
-                      <br />
-                      <span className="text-sm text-muted-foreground">
-                        {application.employeeId.position}
-                      </span>
-                    </TableCell>
-                    <TableCell>{application.leaveType}</TableCell>
-                    <TableCell>{formatDate(application.startDate)}</TableCell>
-                    <TableCell>{formatDate(application.endDate)}</TableCell>
-                    <TableCell>{application.totalDays}</TableCell>
-                    <TableCell>{application.reason}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(application.status)}>
-                        {application.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {formatDate(application.submissionDate)}
-                    </TableCell>
-                    <TableCell>
-                      {application.status === "Pending" ? (
-                        <div className="">
-                          <Textarea
-                            id={`hrComments-${application._id}`}
-                            value={application.hrComments || ""}
-                            placeholder="Type a comment..."
-                            maxLength={50}
-                            className="max-h-20"
-                            onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                              handleCommentChange(
-                                application._id,
-                                e.target.value
-                              )
-                            }
-                          />
-                          <span className="text-xs text-muted-foreground">
-                            Remaining characters {remainingCharacters[application._id] ?? 50}
+    <Layout>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-screen">
+          <Loader className="size-8 animate-spin" />
+        </div>
+      ) : (
+        <div className="container mx-auto py-10">
+          <h1 className="text-center text-3xl font-semibold mb-2">
+            All Leave Applications
+          </h1>
+          <Card>
+            <CardHeader></CardHeader>
+            <CardContent>
+              <div className="mb-4">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {filteredApplications.length === 0 ? (
+                <p className="text-center text-muted-foreground">
+                  No leave applications found.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Leave Type</TableHead>
+                      <TableHead
+                        onClick={() => handleSort("startDate")}
+                        className="cursor-pointer"
+                      >
+                        Start Date{" "}
+                        {sortKey === "startDate" &&
+                          (sortOrder === "asc" ? (
+                            <ChevronUp className="inline" />
+                          ) : (
+                            <ChevronDown className="inline" />
+                          ))}
+                      </TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead
+                        onClick={() => handleSort("totalDays")}
+                        className="cursor-pointer"
+                      >
+                        Total Days{" "}
+                        {sortKey === "totalDays" &&
+                          (sortOrder === "asc" ? (
+                            <ChevronUp className="inline" />
+                          ) : (
+                            <ChevronDown className="inline" />
+                          ))}
+                      </TableHead>
+                      <TableHead>Reason</TableHead>
+                      <TableHead
+                        onClick={() => handleSort("status")}
+                        className="cursor-pointer"
+                      >
+                        Status{" "}
+                        {sortKey === "status" &&
+                          (sortOrder === "asc" ? (
+                            <ChevronUp className="inline" />
+                          ) : (
+                            <ChevronDown className="inline" />
+                          ))}
+                      </TableHead>
+                      <TableHead
+                        onClick={() => handleSort("submissionDate")}
+                        className="cursor-pointer"
+                      >
+                        Submission Date{" "}
+                        {sortKey === "submissionDate" &&
+                          (sortOrder === "asc" ? (
+                            <ChevronUp className="inline" />
+                          ) : (
+                            <ChevronDown className="inline" />
+                          ))}
+                      </TableHead>
+                      <TableHead>Comments</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredApplications.map((application) => (
+                      <TableRow key={application._id}>
+                        <TableCell>
+                          {application.employeeId.firstName}{" "}
+                          {application.employeeId.lastName}
+                          <br />
+                          <span className="text-sm text-muted-foreground">
+                            {application.employeeId.position}
                           </span>
-                        </div>
-                      ) : (
-                        <span className="line-clamp-3">{application.hrComments || "No Comments!"}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {application.status === "Pending" && (
-                        <div className="flex space-x-2">
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              handleStatusChange(
-                                application._id,
-                                "Approved",
-                                application.hrComments || ""
-                              )
-                            }
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() =>
-                              handleStatusChange(
-                                application._id,
-                                "Rejected",
-                                application.hrComments || ""
-                              )
-                            }
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                        </TableCell>
+                        <TableCell>{application.leaveType}</TableCell>
+                        <TableCell>
+                          {formatDate(application.startDate)}
+                        </TableCell>
+                        <TableCell>{formatDate(application.endDate)}</TableCell>
+                        <TableCell>{application.totalDays}</TableCell>
+                        <TableCell>{application.reason}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(application.status)}>
+                            {application.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(application.submissionDate)}
+                        </TableCell>
+                        <TableCell>
+                          {application.status === "Pending" ? (
+                            <div className="">
+                              <Textarea
+                                id={`hrComments-${application._id}`}
+                                value={application.hrComments || ""}
+                                placeholder="Type a comment..."
+                                maxLength={50}
+                                className="max-h-20"
+                                onChange={(
+                                  e: ChangeEvent<HTMLTextAreaElement>
+                                ) =>
+                                  handleCommentChange(
+                                    application._id,
+                                    e.target.value
+                                  )
+                                }
+                              />
+                              <span className="text-xs text-muted-foreground">
+                                Remaining characters{" "}
+                                {remainingCharacters[application._id] ?? 50}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="line-clamp-3">
+                              {application.hrComments || "No Comments!"}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {application.status === "Pending" && (
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  handleStatusChange(
+                                    application._id,
+                                    "Approved",
+                                    application.hrComments || ""
+                                  )
+                                }
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() =>
+                                  handleStatusChange(
+                                    application._id,
+                                    "Rejected",
+                                    application.hrComments || ""
+                                  )
+                                }
+                              >
+                                Reject
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </Layout>
   );
 }
