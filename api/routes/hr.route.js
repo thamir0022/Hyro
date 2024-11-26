@@ -11,6 +11,7 @@ import {
   getEmployeeMails,
   getEmployees,
   getMails,
+  markAsRead,
   search,
   sendMail,
   updateLeaveApplicationStatus,
@@ -35,5 +36,6 @@ app.get("/employee-attendance", verifyToken, getAttendance);
 app.post("/feedback", verifyToken, addFeedback);
 app.post("/send-mail", verifyToken, sendMail);
 app.get("/get-mails", verifyToken, getMails);
+app.patch("/mark-as-read", verifyToken, markAsRead);
 
 export default app;

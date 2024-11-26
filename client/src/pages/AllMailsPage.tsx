@@ -19,7 +19,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +26,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
@@ -45,6 +42,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUser } from "@/context/userContext";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 interface User {
   _id: string;
@@ -59,6 +59,7 @@ interface Email {
   subject: string;
   content: string;
   status: string;
+  readAt?: Date;
   createdAt: string;
   updatedAt: string;
 }
@@ -67,6 +68,7 @@ interface ApiResponse {
   success: boolean;
   receivedMails?: Email[];
   sentMails?: Email[];
+  message?: string;
 }
 
 interface EmployeeMail {
@@ -74,13 +76,66 @@ interface EmployeeMail {
   value: string;
 }
 
+const EmailCard: React.FC<{
+  email: Email;
+  onMarkAsRead: (id: string) => Promise<void>;
+  isLoading: boolean;
+}> = ({ email, onMarkAsRead, isLoading }) => {
+  const { user } = useUser();
+  const isReceived = typeof email.sender !== "string";
+  const senderName = isReceived
+    ? `${(email.sender as User).firstName} ${(email.sender as User).lastName}`
+    : "You";
+  const receiverName =
+    typeof email.receiver !== "string"
+      ? `${(email.receiver as User).firstName} ${
+          (email.receiver as User).lastName
+        }`
+      : "You";
+
+  return (
+    <Card key={email._id} className="mb-4">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          Subject: <p className="capitalize text-xl">{email.subject}</p>
+        </CardTitle>
+        <CardDescription>
+          From: {senderName} | To: {receiverName}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p>{email.content}</p>
+      </CardContent>
+      <CardFooter className="flex justify-between items-center">
+        <span className="text-sm font-semibold text-muted-foreground">
+          Send At : {new Date(email.createdAt).toLocaleString()}
+        </span>
+        {email.readAt ? (
+          <span className="text-sm font-semibold text-muted-foreground">
+            Read At : {new Date(email.readAt).toLocaleString()}
+          </span>
+        ) : email.sender === user?.id ? (
+          <Badge className="capitalize">{email.status}</Badge>
+        ) : (
+          <Button onClick={() => onMarkAsRead(email._id)}>
+            {isLoading ? (
+              <Loader className="size-6 animate-spin" />
+            ) : (
+              "Mark As Read"
+            )}
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+};
+
 const ViewEmailsPage: React.FC = () => {
   const { user } = useUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const [emails, setEmails] = useState<Email[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [open, setOpen] = useState<boolean>(false);
-  const [openPopover, setOpenPopover] = useState<boolean>(false);
+  const [markingRead, setMarkingRead] = useState<string | null>(null);
   const [employeeMails, setEmployeeMails] = useState<EmployeeMail[]>([]);
   const [mailData, setMailData] = useState({
     sender: user?.id || "",
@@ -88,39 +143,39 @@ const ViewEmailsPage: React.FC = () => {
     subject: "",
     content: "",
   });
-
+  const [openCompose, setOpenCompose] = useState(false);
+  const [openComboBox, setopenComboBox] = useState(false);
   const filter = searchParams.get("filter") || "all";
 
+  // Fetch emails based on filter
   useEffect(() => {
     const fetchEmails = async () => {
+      setEmails([]);
       setIsLoading(true);
       try {
         const response = await fetch(`/api/hr/get-mails?filter=${filter}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch emails");
-        }
         const data: ApiResponse = await response.json();
-        if (data.success) {
-          let fetchedEmails: Email[] = [];
-          if (filter === "received" && data.receivedMails) {
-            fetchedEmails = data.receivedMails;
-          } else if (filter === "sent" && data.sentMails) {
-            fetchedEmails = data.sentMails;
-          } else if (filter === "all") {
-            fetchedEmails = [
-              ...(data.receivedMails || []),
-              ...(data.sentMails || []),
-            ];
-          }
-          setEmails(fetchedEmails);
-        } else {
-          throw new Error("Failed to fetch emails");
+
+        if (!response.ok) {
+          toast({
+            title: data.message,
+            variant: "destructive",
+          });
+          return;
         }
-      } catch (err) {
-        console.error("Error fetching emails:", err);
+
+        const fetchedEmails =
+          filter === "received"
+            ? data.receivedMails || []
+            : filter === "sent"
+            ? data.sentMails || []
+            : [...(data.receivedMails || []), ...(data.sentMails || [])];
+
+        setEmails(fetchedEmails);
+      } catch (err: any) {
         toast({
-          title: "Error",
-          description: "Failed to fetch emails. Please try again.",
+          title: "Failed to fetch emails. Please try again.",
+          description: err.message,
           variant: "destructive",
         });
       } finally {
@@ -131,32 +186,33 @@ const ViewEmailsPage: React.FC = () => {
     fetchEmails();
   }, [filter]);
 
+  // Fetch employee mail IDs
   useEffect(() => {
-    const fetchEmailIds = async () => {
+    const fetchEmployeeMails = async () => {
       try {
         const res = await fetch("/api/hr/employee-mails");
         const data = await res.json();
         if (res.ok) {
-          const employeeData = data.employees; // Update to match the API response structure
           setEmployeeMails(
-            employeeData.map((e: { _id: string; email: string }) => ({
+            data.employees.map((e: { _id: string; email: string }) => ({
               value: e._id,
               label: e.email,
             }))
           );
         }
-      } catch (error) {
-        console.error("Error fetching employee emails:", error);
+      } catch (err) {
+        console.error("Error fetching employee emails:", err);
       }
     };
-    fetchEmailIds();
+
+    fetchEmployeeMails();
   }, []);
 
   const handleFilterChange = (value: string) => {
     setSearchParams({ filter: value });
   };
 
-  const handleChange = (
+  const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
@@ -166,15 +222,12 @@ const ViewEmailsPage: React.FC = () => {
   const handleSendMail = async () => {
     try {
       const res = await fetch("/api/hr/send-mail", {
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         method: "POST",
-        body: JSON.stringify({ ...mailData }),
+        body: JSON.stringify(mailData),
       });
 
       const data = await res.json();
-
       if (res.ok) {
         setMailData({
           sender: user?.id || "",
@@ -182,45 +235,34 @@ const ViewEmailsPage: React.FC = () => {
           subject: "",
           content: "",
         });
-        toast({
-          title: "Success",
-          description: data.message,
-        });
-        setOpen(false);
+        toast({ title: "Success", description: data.message });
+        setOpenCompose(false);
       }
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to send email.",
+        variant: "destructive",
+      });
     }
   };
 
-  const renderEmailCard = (email: Email) => {
-    const isReceived = typeof email.sender !== "string";
-    const senderName = isReceived
-      ? `${(email.sender as User).firstName} ${(email.sender as User).lastName}`
-      : "You";
-    const receiverName =
-      typeof email.receiver !== "string"
-        ? `${(email.receiver as User).firstName} ${
-            (email.receiver as User).lastName
-          }`
-        : "You";
+  const handleMarkAsRead = async (mailId: string) => {
+    setMarkingRead(mailId);
+    try {
+      const res = await fetch("/api/hr/mark-as-read", {
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+        body: JSON.stringify({ mailId, status: "read" }),
+      });
 
-    return (
-      <Card key={email._id} className="mb-4">
-        <CardHeader>
-          <CardTitle>{email.subject}</CardTitle>
-          <CardDescription>
-            From: {senderName} | To: {receiverName}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>{email.content}</p>
-        </CardContent>
-        <CardFooter className="text-sm text-muted-foreground">
-          {format(new Date(email.createdAt), "PPpp")}
-        </CardFooter>
-      </Card>
-    );
+      if (!res.ok) throw new Error("Failed to mark email as read");
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setMarkingRead(null);
+    }
   };
 
   return (
@@ -240,75 +282,59 @@ const ViewEmailsPage: React.FC = () => {
           </Select>
         </div>
         {isLoading ? (
-          <div className="flex size-full items-center justify-center">
-            <Loader className="mx-auto h-6 w-6 animate-spin" />
+          <div className="flex items-center justify-center">
+            <Loader className="h-6 w-6 animate-spin" />
           </div>
         ) : emails.length === 0 ? (
           <p className="text-center">No emails found.</p>
         ) : (
-          emails.map(renderEmailCard)
+          emails.map((email) => (
+            <EmailCard
+              key={email._id}
+              email={email}
+              onMarkAsRead={handleMarkAsRead}
+              isLoading={markingRead === email._id}
+            />
+          ))
         )}
       </div>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger>
-          <Button
-            onClick={() => setOpen(true)}
-            className="py-5 px-3 h-12 w-32 fixed right-10 bottom-10 hover:scale-110 transition-all duration-300"
-          >
+      <Dialog open={openCompose} onOpenChange={setOpenCompose}>
+        <DialogTrigger asChild>
+          <Button className="fixed right-10 bottom-10 h-12 w-32">
             <Pencil />
             Compose
           </Button>
         </DialogTrigger>
-        <DialogContent className="w-1/2">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Write A Mail</DialogTitle>
+            <DialogTitle className="text-center">Compose Mail</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-3">
-            <Popover open={openPopover} onOpenChange={setOpenPopover}>
+          <form className="space-y-4">
+            <Popover open={openComboBox} onOpenChange={setopenComboBox}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openPopover}
-                  className="w-full justify-between"
-                >
-                  {mailData.receiver
-                    ? employeeMails.find(
-                        (mail) => mail.value === mailData.receiver
-                      )?.label || "Select a recipient"
-                    : "Select a recipient"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                <Button variant="outline" className="w-full justify-between">
+                  {employeeMails.find((m) => m.value === mailData.receiver)
+                    ?.label || "Select Employee"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0">
-                <Command className="w-full">
+                <Command>
                   <CommandInput placeholder="Search employee..." />
                   <CommandList>
-                    <CommandEmpty>No Employees found!</CommandEmpty>
+                    <CommandEmpty>No employee found.</CommandEmpty>
                     <CommandGroup>
                       {employeeMails.map((mail) => (
                         <CommandItem
                           key={mail.value}
-                          value={mail.value}
-                          onSelect={(currentValue) => {
+                          onSelect={() => {
                             setMailData((prev) => ({
                               ...prev,
-                              receiver:
-                                prev.receiver === currentValue
-                                  ? ""
-                                  : currentValue, // Ensure the return is a valid object
+                              receiver: mail.value,
                             }));
-                            setOpenPopover(false);
+                            setopenComboBox(false);
                           }}
                         >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              mailData.receiver === mail.value
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
                           <Avatar className="size-8">
                             <AvatarImage
                               src={`https://api.dicebear.com/6.x/initials/svg?seed=${mail.label[0]} ${mail.label[1]}`}
@@ -318,7 +344,15 @@ const ViewEmailsPage: React.FC = () => {
                               {mail.label[1]}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="capitalize">{mail.label}</span>
+                          {mail.label}
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              mailData.receiver === mail.value
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
                         </CommandItem>
                       ))}
                     </CommandGroup>
@@ -327,28 +361,27 @@ const ViewEmailsPage: React.FC = () => {
               </PopoverContent>
             </Popover>
             <Input
-              placeholder="Subject"
+              type="text"
               name="subject"
               value={mailData.subject}
-              onChange={handleChange}
+              onChange={handleInputChange}
+              placeholder="Subject"
+              className="border p-2 w-full"
+              required
             />
             <Textarea
-              className="min-h-32 max-h-60"
               name="content"
               value={mailData.content}
-              onChange={handleChange}
-              placeholder="Write your mail here..."
+              onChange={handleInputChange}
+              placeholder="Email content"
+              rows={4}
+              className="border p-2 w-full min-h-32 max-h-56"
+              minLength={10}
             />
-            <span className="text-xs font-semibold text-muted-foreground">
-              {500 - mailData.content.length} charecters remaining
-            </span>
-            <div className="w-full flex justify-between">
-              <Button onClick={() => setOpen(false)} variant="destructive">
-                Cancel
-              </Button>
-              <Button onClick={() => handleSendMail()}>Send</Button>
-            </div>
-          </div>
+            <Button type="button" onClick={handleSendMail}>
+              Send Email
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </Layout>

@@ -540,11 +540,10 @@ export const addFeedback = async (req, res, next) => {
   }
 };
 
-
 export const sendMail = async (req, res, next) => {
   const { sender, receiver, subject, content } = req.body;
 
-  if(!["admin", "hr"].includes(req.user.role)){
+  if (!["admin", "hr"].includes(req.user.role)) {
     return next(errorHandler(403, "You are not allowed to access this api"));
   }
 
@@ -552,12 +551,19 @@ export const sendMail = async (req, res, next) => {
     return next(errorHandler(400, "All fields are required"));
   }
 
-  if(!isValidObjectId(sender) || !isValidObjectId(receiver)){
-    return next(errorHandler(400, "You can't send an email with these user id"));
+  if (!isValidObjectId(sender) || !isValidObjectId(receiver)) {
+    return next(
+      errorHandler(400, "You can't send an email with these user id")
+    );
   }
 
-  if(sender !== req.user.id){
-    return next(errorHandler(401, "You are not allowed to send an email with this user id"));
+  if (sender !== req.user.id) {
+    return next(
+      errorHandler(
+        401,
+        "You are not allowed to send an email with this user id"
+      )
+    );
   }
 
   try {
@@ -576,7 +582,6 @@ export const sendMail = async (req, res, next) => {
   }
 };
 
-
 export const getMails = async (req, res, next) => {
   try {
     const filter = req.query.filter || "all"; // Can be "sent", "received", or "all"
@@ -584,16 +589,18 @@ export const getMails = async (req, res, next) => {
     let receivedMails = [];
     let sentMails = [];
 
+    // Fetch and sort received mails
     if (filter === "received" || filter === "all") {
       receivedMails = await Mail.find({ receiver: req.user.id })
         .populate("sender", "firstName lastName")
-        .sort({ createdAt: -1 });
+        .sort({ readAt: 1, createdAt: -1 }); // Sort unread first, then latest
     }
 
+    // Fetch and sort sent mails
     if (filter === "sent" || filter === "all") {
       sentMails = await Mail.find({ sender: req.user.id })
         .populate("receiver", "firstName lastName")
-        .sort({ createdAt: -1 });
+        .sort({ readAt: 1, createdAt: -1 }); // Sort unread first, then latest
     }
 
     const response = {};
@@ -615,13 +622,14 @@ export const getMails = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      ...response
+      ...response,
     });
   } catch (error) {
     console.error(error);
     next(errorHandler(500, "An error occurred while fetching mails"));
   }
 };
+
 
 export const getEmployeeMails = async (req, res, next) => {
   // Ensure only admins or HRs can access this API
@@ -647,5 +655,34 @@ export const getEmployeeMails = async (req, res, next) => {
   } catch (error) {
     console.error(error);
     next(errorHandler(500, "An error occurred while fetching employee emails"));
+  }
+};
+
+export const markAsRead = async (req, res, next) => {
+  const { status, mailId } = req.body;
+
+  if (
+    !status ||
+    !["sent", "read", "archived"].includes(status) ||
+    !mailId ||
+    !isValidObjectId(mailId)
+  ) {
+    const errorMessage = !status
+      ? "Status is required!"
+      : !["sent", "read", "archived"].includes(status)
+      ? `Invalid status: '${status}'. Status should be one of sent, read, or archived.`
+      : "Invalid mailId provided.";
+
+    return next(errorHandler(400, errorMessage));
+  }
+  try {
+    await Mail.findByIdAndUpdate(mailId, { status, readAt: status === "read" ? new Date() : null });
+
+    res.status(200).json({
+      success: true,
+      message: `Mail status updated to ${status}`,
+    });
+  } catch (error) {
+    console.log(error);
   }
 };
