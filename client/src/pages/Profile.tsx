@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Loader } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader, Plus } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   AreaChart,
@@ -10,7 +10,7 @@ import {
   Tooltip,
   YAxis,
 } from "recharts";
-import { ChartContainer } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { useUser } from "@/context/userContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import Feedback from "@/components/Feedback";
 import Layout from "@/components/Layout";
+import { Badge } from "@/components/ui/badge";
 
 interface Performance {
   _id: string;
@@ -82,6 +83,14 @@ interface AttendanceData {
   }[];
   workedHours: number;
   totalWorkingHours: number;
+}
+
+interface perfomanceData {
+  monthlyPerfomance: {
+    month: string;
+    performance: string;
+  }[];
+  totalPerformance: string;
 }
 
 function CTCDetails({ ctcData }: { ctcData: CTCData }) {
@@ -177,6 +186,24 @@ export default function Employee() {
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [feedbacks, setFeedbacks] = useState([]);
+  const [perfomanceData, setPerfomanceData] = useState<perfomanceData | null>(
+    null
+  );
+
+  useEffect(() => {
+    const fetchMyPerformance = async() => {
+      try {
+        const res = await fetch("/api/employee/get-my-performance");
+        const data = await res.json();
+        if(res.ok){
+          setPerfomanceData(data.employeePerfomance);
+        }
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    fetchMyPerformance();
+  }, [user]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -185,9 +212,7 @@ export default function Employee() {
           await Promise.all([
             fetch(`/api/employee/user/${user?.id}`),
             fetch(`/api/employee/ctc/${user?.id}`),
-            fetch(
-              `/api/employee/attendance?userId=${user?.id}&period=${attendancePeriod}`
-            ),
+            fetch(`/api/employee/attendance?userId=${user?.id}&period=${attendancePeriod}`),
             fetch("/api/employee/feedbacks"),
           ]);
 
@@ -425,34 +450,64 @@ export default function Employee() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>My Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px]">
-              <AreaChart
-                data={chartData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                className="h-72 mt-4"
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="month"
-                  tickFormatter={(value) => value.slice(0, 3)}
-                />
-                <YAxis />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="Performance"
-                  stroke="#8884d8"
-                  fill="#8884d8"
-                />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>My Performance Over Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px]">
+                  <AreaChart
+                    data={chartData}
+                    margin={{
+                      left: 12,
+                      right: 12,
+                    }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(value) => {
+                        const [month, year] = value.split(" ");
+                        return `${month.slice(0, 3)} ${year}`;
+                      }}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="line" />}
+                    />
+                    <Area
+                      dataKey="Performance"
+                      type="natural"
+                      // fill=""
+                      fillOpacity={0.4}
+                      // stroke=""
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="max-h-[400px] overflow-y-scroll scroll-smooth cursor-pointer custom-scrollbar">
+              <CardHeader className="sticky top-0 bg-white">
+                <CardTitle>My Monthly Performance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {perfomanceData?.monthlyPerfomance.map((p) => (
+                  <div
+                    className="w-full flex justify-between py-1 px-3"
+                    key={p.month}
+                  >
+                    <p className="font-semibold">{p.month}</p>
+                    <Badge>{p.performance}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
 
         <Feedback feedbacks={feedbacks} />
       </div>

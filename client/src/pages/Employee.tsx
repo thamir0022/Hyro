@@ -1,19 +1,20 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Loader } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Loader, Plus } from "lucide-react";
 import {
-  AreaChart,
-  Area,
-  CartesianGrid,
-  XAxis,
-  Tooltip,
-  YAxis,
-} from "recharts";
-import { ChartContainer } from "@/components/ui/chart";
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AreaChart, Area, CartesianGrid, XAxis } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 import {
   Accordion,
   AccordionContent,
@@ -26,6 +27,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -35,12 +37,16 @@ import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import HRFeedbacks from "@/components/HRFeedbacks";
 import Layout from "@/components/Layout";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 interface Performance {
   _id: string;
@@ -95,6 +101,29 @@ interface AttendanceData {
   workedHours: number;
   totalWorkingHours: number;
 }
+
+interface perfomanceData {
+  monthlyPerfomance: {
+    month: string;
+    performance: string;
+  }[];
+  totalPerformance: string;
+}
+
+const months = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 function CTCDetails({ ctcData }: { ctcData: CTCData }) {
   return (
@@ -184,38 +213,54 @@ export default function Employee() {
   const [attendanceData, setAttendanceData] = useState<AttendanceData | null>(
     null
   );
+  const [perfomanceData, setPerfomanceData] = useState<perfomanceData | null>(
+    null
+  );
   const [attendancePeriod, setAttendancePeriod] = useState<string>("weekly");
+  const [openDialog, setOpenDialog] = useState<boolean>(false);
+  const [newPerfomance, setNewPerformance] = useState({
+    year: new Date().getFullYear().toString(),
+    month: months[new Date().getMonth()],
+    performance: "",
+  });
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [employeeRes, ctcRes, attendanceRes] = await Promise.all([
-          fetch(`/api/hr/employee/${id}`),
-          fetch(`/api/employee/ctc/${id}`),
-          fetch(
-            `/api/hr/employee-attendance?userId=${id}&period=${attendancePeriod}`
-          ),
-        ]);
+        const [employeeRes, ctcRes, attendanceRes, perfomanceRes] =
+          await Promise.all([
+            fetch(`/api/hr/employee/${id}`),
+            fetch(`/api/employee/ctc/${id}`),
+            fetch(
+              `/api/hr/employee-attendance?userId=${id}&period=${attendancePeriod}`
+            ),
+            fetch(`/api/hr/get-perfomance/${id}`),
+            fetch("/api/employee/get-my-performance")
+          ]);
 
         if (!employeeRes.ok) throw new Error("Failed to fetch employee data");
         if (!ctcRes.ok) throw new Error("Failed to fetch CTC data");
         if (!attendanceRes.ok)
           throw new Error("Failed to fetch attendance data");
+        if (!perfomanceRes.ok)
+          throw new Error("Failed to fetch perfomance data");
 
         const employeeData = await employeeRes.json();
         const ctcData = await ctcRes.json();
         const attendanceData = await attendanceRes.json();
+        const perfomanceData = await perfomanceRes.json();
 
         setEmployee(employeeData);
         setCTCData(ctcData.ctc);
         setAttendanceData(attendanceData);
+        setPerfomanceData(perfomanceData.employeePerfomance);
       } catch (error: any) {
         console.error(error.message);
         toast({
-          title: "Error",
-          description: "Failed to load employee data. Please try again.",
+          title: "Failed to load employee data.",
+          description: error.message,
           variant: "destructive",
         });
       } finally {
@@ -275,6 +320,55 @@ export default function Employee() {
       setTimeout(() => {
         navigate("/dashboard");
       }, 3000);
+    }
+  };
+
+  const handleAddNewPerformance = async () => {
+    try {
+      if (
+        Number(newPerfomance.performance) <= 0 ||
+        Number(newPerfomance.performance) > 200
+      ) {
+        throw new Error(
+          `Performance score should be between 1 and 200 ${newPerfomance.performance} is not valid`
+        );
+      }
+
+      if (!newPerfomance.year || !newPerfomance.month) {
+        throw new Error("Year and month are required!");
+      }
+
+      const res = await fetch(`/api/hr/add-perfomance/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+        body: JSON.stringify({ ...newPerfomance}),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast({
+          title: "Failed to add new performance",
+          description: data.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Perfomance Added Successfully",
+        description: data.message,
+      });
+
+      setOpenDialog(false);
+    } catch (error: any) {
+      toast({
+        title: "Error on adding new performance",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -449,34 +543,70 @@ export default function Employee() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Over Time</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px]">
-                <AreaChart
-                  data={chartData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                  className="h-72 mt-4"
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="month"
-                    tickFormatter={(value) => value.slice(0, 3)}
-                  />
-                  <YAxis />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="Performance"
-                    stroke="#8884d8"
-                    fill="#8884d8"
-                  />
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance Over Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px]">
+                  <AreaChart
+                    data={chartData}
+                    margin={{
+                      left: 12,
+                      right: 12,
+                    }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(value) => {
+                        const [month, year] = value.split(" ");
+                        return `${month.slice(0, 3)} ${year}`;
+                      }}
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="line" />}
+                    />
+                    <Area
+                      dataKey="Performance"
+                      type="natural"
+                      // fill=""
+                      fillOpacity={0.4}
+                      // stroke=""
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="max-h-[400px] overflow-y-scroll scroll-smooth cursor-pointer custom-scrollbar">
+              <CardHeader className="sticky top-0 bg-white">
+                <CardTitle>Monthly Performance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {perfomanceData?.monthlyPerfomance.map((p) => (
+                  <div
+                    className="w-full flex justify-between py-1 px-3"
+                    key={p.month}
+                  >
+                    <p className="font-semibold">{p.month}</p>
+                    <Badge>{p.performance}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+              <CardFooter>
+                <Button onClick={() => setOpenDialog(true)}>
+                  <Plus />
+                  Add New Perfomance
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
 
           <HRFeedbacks
             user={{
@@ -486,6 +616,95 @@ export default function Employee() {
           />
         </div>
       )}
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-xl text-center border-b pb-2">
+              New Perfomance
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 items-center">
+            {/* Year Dropdown - Only This Year & Next Year */}
+            <label className="text-xl font-semibold" htmlFor="year">
+              Year
+            </label>
+            <Select
+              defaultValue={newPerfomance.year}
+              onValueChange={(value) =>
+                setNewPerformance((prev) => ({
+                  ...prev,
+                  year: value,
+                }))
+              }
+            >
+              <SelectTrigger className="">
+                <SelectValue placeholder="Select A Year" />
+              </SelectTrigger>
+              <SelectContent id="year">
+                <SelectGroup>
+                  {[
+                    new Date().getFullYear() - 1,
+                    new Date().getFullYear(),
+                    new Date().getFullYear() + 1,
+                  ].map((y) => (
+                    <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            <label className="text-xl font-semibold" htmlFor="year">
+              Month
+            </label>
+            <Select
+              onValueChange={(value) =>
+                setNewPerformance((prev) => ({
+                  ...prev,
+                  month: value,
+                }))
+              }
+              defaultValue={newPerfomance.month}
+            >
+              <SelectTrigger className="">
+                <SelectValue placeholder="Select A Month" />
+              </SelectTrigger>
+              <SelectContent id="year">
+                <SelectGroup>
+                  {months.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            <label className="text-xl font-semibold" htmlFor="perfomance">
+              Perfomance Score
+            </label>
+            <div className="space-y-1">
+              <Input
+                id="performance"
+                placeholder="Eg: 150"
+                value={newPerfomance.performance}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setNewPerformance((prev) => ({
+                    ...prev,
+                    [e.target.id]: e.target.value,
+                  }))
+                }
+                required
+              />
+              <span className="text-xs text-muted-foreground font-semibold">
+                Maximum Performane Score is 200
+              </span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={() => handleAddNewPerformance()}>
+              Submit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

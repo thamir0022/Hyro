@@ -21,8 +21,8 @@ interface Feedback {
 
 const Feedback = ({ feedbacks }: { feedbacks: Feedback[] }) => {
   return feedbacks.length > 0 ? (
-    <div className="space-y-5">
-      <h2 className="font-semibold">My Feedbacks</h2>
+    <section className=" max-h-[555px] overflow-y-scroll space-y-5 custom-scrollbar">
+      <h2 className="text-lg font-semibold sticky top-0 bg-white z-20 scroll-smooth py-3">My Feedbacks</h2>
       {feedbacks.map((feedbackItem) => (
         <Card key={feedbackItem._id}>
           <CardHeader>
@@ -49,7 +49,7 @@ const Feedback = ({ feedbacks }: { feedbacks: Feedback[] }) => {
           </CardFooter>
         </Card>
       ))}
-    </div>
+    </section>
   ) : (
     <p className="text-xl text-center text-muted-foreground font-semibold">
       No feedbacks available

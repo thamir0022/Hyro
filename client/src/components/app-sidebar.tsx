@@ -13,6 +13,9 @@ import {
   MessageSquare,
   Pen,
   Flag,
+  UserRoundPlus,
+  Briefcase,
+  Folder,
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,7 +47,10 @@ interface Item {
 const hrItems: Item[] = [
   { title: "Dashboard", url: "/dashboard", icon: ChartPie },
   { title: "Employees", url: "/employees", icon: Users },
-  { title: "Inbox", url: "#", icon: Mail },
+  { title: "Inbox", url: "/inbox", icon: Mail },
+  { title: "New Opening", url: "/new-opening", icon: UserRoundPlus },
+  { title: "Current Openings", url: "/careers", icon: Briefcase },
+  { title: "Job Applications", url: "/all-job-applications", icon: Folder },
   { title: "Leave Applications", url: "/employee-leave-applications", icon: MessageSquare },
   { title: "Search", url: "/search", icon: Search },
   { title: "Settings", url: "#", icon: Settings },
@@ -83,7 +89,11 @@ const adminItems: Item[] = [
       { title: "New HR", url: "/create/hr" },
     ],
   },
+
   { title: "Inbox", url: "/inbox", icon: Mail },
+  { title: "New Opening", url: "/new-opening", icon: UserRoundPlus },
+  { title: "Current Openings", url: "/careers", icon: Briefcase },
+  { title: "Job Applications", url: "/all-job-applications", icon: Folder },
   { title: "Leave Applications", url: "/employee-leave-applications", icon: MessageSquare },
   { title: "Search", url: "/search", icon: Search },
   { title: "Settings", url: "#", icon: Settings },

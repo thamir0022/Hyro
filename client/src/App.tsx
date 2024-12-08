@@ -22,6 +22,12 @@ import AppliedLeaves from "./pages/AppliedLeavesPage";
 import HRLeaveApplications from "./pages/AllLeaveApplications";
 import PersonalGoals from "./pages/PersonalGoals";
 import ViewEmails from "./pages/AllHRMailsPage";
+import JobOpenings from "./pages/JobOpeningsPage";
+import JobDetails from "./pages/JobDetailsPage";
+import JobApplication from "./pages/JobApplicationPage";
+import AddJobOpening from "./pages/NewJobPage";
+import AllJobApplications from "./pages/AllJobApplicationsPage";
+import JobApplicationDetails from "./pages/JobApplicationDetails";
 
 const App = () => {
   return (
@@ -34,7 +40,7 @@ const App = () => {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/apply-leave" element={<LeaveApplication />} />
               <Route path="/all-leaves" element={<AppliedLeaves />} />
-              <Route path="/add-goals" element={<PersonalGoals/>} />
+              <Route path="/add-goals" element={<PersonalGoals />} />
               <Route path="/inbox" element={<ViewEmails />} />
             </Route>
             <Route element={<OnlyHRPrivateRoutes />}>
@@ -43,15 +49,24 @@ const App = () => {
               <Route path="/employee/edit/:id" element={<EditEmployee />} />
               <Route path="/hr/edit/:id" element={<HREdit />} />
               <Route path="/employees" element={<AllEmployees />} />
-              <Route path="/hr/:id?" element={<HRPage/>} />
+              <Route path="/hr/:id?" element={<HRPage />} />
               <Route path="/create/employee" element={<AddEmployee />} />
               <Route path="/create/hr" element={<AddHR />} />
               <Route path="/search" element={<SearchPage />} />
-              <Route path="/employee-leave-applications" element={<HRLeaveApplications />} />
+              <Route path="/new-opening" element={<AddJobOpening />} />
+              <Route path="/all-job-applications" element={<AllJobApplications />} />
+              <Route path="/job-application/:id" element={<JobApplicationDetails />} />
+              <Route
+                path="/employee-leave-applications"
+                element={<HRLeaveApplications />}
+              />
             </Route>
             <Route path="/" element={<HomePage />} />
             <Route path="/sign-in" element={<SignInPage />} />
             <Route path="/sign-up" element={<SignUpPage />} />
+            <Route path="/careers" element={<JobOpenings />} />
+            <Route path="/job/:id?" element={<JobDetails />} />
+            <Route path="/apply-job/:id" element={<JobApplication />} />
           </Routes>
         </UserProvider>
       </SidebarProvider>

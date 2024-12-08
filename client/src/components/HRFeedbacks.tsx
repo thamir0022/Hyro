@@ -94,12 +94,13 @@ const HRFeedbacks = ({ user }: { user: { name: string; id: string } }) => {
 
   return (
     <section className="w-full grid grid-cols-2 gap-4">
-      <div className="flex flex-col gap-4">
+      <div className="space-y-4">
         <h2 className="text-center text-xl font-semibold">
           {user.name}'s Feedbacks
         </h2>
         {feedbacks.length > 0 ? (
-          feedbacks.map(({ _id, content, createdAt, hr }) => (
+          <div className="flex flex-col gap-4 h-[555px] overflow-y-scroll custom-scrollbar">
+            {feedbacks.map(({ _id, content, createdAt, hr }) => (
             <Card key={_id}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -126,7 +127,8 @@ const HRFeedbacks = ({ user }: { user: { name: string; id: string } }) => {
                 </span>
               </CardFooter>
             </Card>
-          ))
+          ))}
+          </div>
         ) : (
           <p className="text-center text-lg font-semibold text-muted-foreground">
             {user.name} have no feedbacks
@@ -139,7 +141,7 @@ const HRFeedbacks = ({ user }: { user: { name: string; id: string } }) => {
           Write a feedback to {user.name}
         </h2>
         <Textarea
-          className="min-h-20 max-h-44"
+          className="h-44 min-h-20 max-h-44"
           placeholder="Write your feedback here..."
           value={hrFeedback}
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>

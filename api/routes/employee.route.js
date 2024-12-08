@@ -18,6 +18,10 @@ import {
   getMails,
   markAsRead,
   getHrMails,
+  getAllJobs,
+  getJob,
+  createJobApplication,
+  getMyPerformance,
 } from "../controllers/employee.controller.js";
 
 const router = express();
@@ -39,5 +43,9 @@ router.post("/send-mail", verifyToken, sendMail);
 router.get("/get-mails", verifyToken, getMails);
 router.patch("/mark-as-read", verifyToken, markAsRead);
 router.get("/hr-mails", verifyToken, getHrMails);
+router.get("/get-all-job-openings", getAllJobs);
+router.get("/job/:id?", getJob);
+router.post("/apply-job", createJobApplication);
+router.get("/get-my-performance", verifyToken, getMyPerformance);
 
 export default router;

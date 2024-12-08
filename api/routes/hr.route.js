@@ -3,39 +3,49 @@ import { verifyToken } from "../utils/index.js";
 import {
   addEmployee,
   addFeedback,
+  addJob,
+  addPerformance,
   deleteEmployee,
   editEmployee,
+  getAllJobApplications,
   getAllLeaveApplications,
   getAttendance,
   getEmployee,
   getEmployeeMails,
   getEmployees,
+  getJobApllication,
   getMails,
+  getPerfomance,
   markAsRead,
   search,
   sendMail,
   updateLeaveApplicationStatus,
 } from "../controllers/hr.controller.js";
 
-const app = express();
+const router = express();
 
-app.get("/employees", verifyToken, getEmployees);
-app.get("/employee-mails", verifyToken, getEmployeeMails);
-app.post("/add-employee", verifyToken, addEmployee);
-app.get("/employee/:id?", verifyToken, getEmployee);
-app.put("/employee/edit", verifyToken, editEmployee);
-app.delete("/delete-employee/:id?", verifyToken, deleteEmployee);
-app.get("/search", verifyToken, search);
-app.get("/leave-applications", verifyToken, getAllLeaveApplications);
-app.patch(
+router.get("/employees", verifyToken, getEmployees);
+router.get("/employee-mails", verifyToken, getEmployeeMails);
+router.post("/add-employee", verifyToken, addEmployee);
+router.get("/employee/:id?", verifyToken, getEmployee);
+router.put("/employee/edit", verifyToken, editEmployee);
+router.delete("/delete-employee/:id?", verifyToken, deleteEmployee);
+router.get("/search", verifyToken, search);
+router.get("/leave-applications", verifyToken, getAllLeaveApplications);
+router.patch(
   "/update-leave-application-status/:id?",
   verifyToken,
   updateLeaveApplicationStatus
 );
-app.get("/employee-attendance", verifyToken, getAttendance);
-app.post("/feedback", verifyToken, addFeedback);
-app.post("/send-mail", verifyToken, sendMail);
-app.get("/get-mails", verifyToken, getMails);
-app.patch("/mark-as-read", verifyToken, markAsRead);
+router.get("/employee-attendance", verifyToken, getAttendance);
+router.post("/feedback", verifyToken, addFeedback);
+router.post("/send-mail", verifyToken, sendMail);
+router.get("/get-mails", verifyToken, getMails);
+router.patch("/mark-as-read", verifyToken, markAsRead);
+router.post("/add-job", verifyToken, addJob);
+router.get("/get-all-job-applications", verifyToken, getAllJobApplications);
+router.get("/get-job-application/:id?", verifyToken, getJobApllication);
+router.post("/add-perfomance/:id?", verifyToken, addPerformance);
+router.get("/get-perfomance/:id?", verifyToken, getPerfomance);
 
-export default app;
+export default router;

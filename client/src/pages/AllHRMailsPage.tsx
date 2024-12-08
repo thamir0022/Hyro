@@ -220,33 +220,47 @@ const ViewEmailsPage: React.FC = () => {
   };
 
   const handleSendMail = async () => {
+    const { content, receiver, subject } = mailData;
+  
+    // Validate required fields
+    if (!content || !receiver || !subject) {
+      throw new Error("All fields are required!");
+    }
+  
     try {
-      const res = await fetch("/api/hr/send-mail", {
-        headers: { "Content-Type": "application/json" },
+      // Send mail API request
+      const response = await fetch("/api/hr/send-mail", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(mailData),
       });
-
-      const data = await res.json();
-      if (res.ok) {
-        setMailData({
-          sender: user?.id || "",
-          receiver: "",
-          subject: "",
-          content: "",
-        });
-        toast({ title: "Success", description: data.message });
-        setOpenCompose(false);
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to send email");
       }
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: "Failed to send email.",
-        variant: "destructive",
+  
+      // Reset form state and show success toast
+      setMailData({
+        sender: user?.id || "",
+        receiver: "",
+        subject: "",
+        content: "",
       });
+      toast({ title: "Success", description: data.message });
+      setOpenCompose(false);
+    } catch (error: any) {
+      console.log(error)
+      // Handle errors
+      toast({
+        title: "Failed to send email",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });      
     }
   };
+  
 
   const handleMarkAsRead = async (mailId: string) => {
     setMarkingRead(mailId);

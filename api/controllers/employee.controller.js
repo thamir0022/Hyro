@@ -7,6 +7,8 @@ import LeaveApplication from "../models/leaveApplication.model.js";
 import PersonalGoal from "../models/personalGoal.model.js";
 import Feedback from "../models/feedback.model.js";
 import Mail from "../models/mail.model.js";
+import Job from "../models/job.model.js";
+import JobApplication from "../models/jobApplication.model.js";
 
 export const getEmployee = async (req, res, next) => {
   try {
@@ -533,7 +535,6 @@ export const getFeedbacks = async (req, res, next) => {
   }
 };
 
-
 export const getMails = async (req, res, next) => {
   try {
     const filter = req.query.filter || "all"; // Can be "sent", "received", or "all"
@@ -585,7 +586,6 @@ export const getMails = async (req, res, next) => {
 export const sendMail = async (req, res, next) => {
   const { sender, receiver, subject, content } = req.body;
 
-
   if (!sender || !receiver || !subject || !content) {
     return next(errorHandler(400, "All fields are required"));
   }
@@ -621,7 +621,6 @@ export const sendMail = async (req, res, next) => {
   }
 };
 
-
 export const markAsRead = async (req, res, next) => {
   const { status, mailId } = req.body;
 
@@ -653,18 +652,17 @@ export const markAsRead = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: `Mail status updated to ${status}`,
-      updatedMail
+      updatedMail,
     });
   } catch (error) {
-  console.log(error);
+    console.log(error);
   }
 };
-
 
 export const getHrMails = async (req, res, next) => {
   try {
     // Fetch hr with email addresses, sorted in ascending order by email
-    const hr = await User.find({ role: { $in: ["hr", "admin"] }})
+    const hr = await User.find({ role: { $in: ["hr", "admin"] } })
       .select("_id email") // Select both _id and email fields
       .sort({ email: 1 }); // Sort by email in ascending order
 
@@ -680,5 +678,157 @@ export const getHrMails = async (req, res, next) => {
   } catch (error) {
     console.error(error);
     next(errorHandler(500, "An error occurred while fetching employee emails"));
+  }
+};
+
+export const getAllJobs = async (req, res, next) => {
+  try {
+    const allJobs = await Job.find()
+      .populate("postedBy", "firstName lastName")
+      .sort({ createdAt: -1 });
+    if (!allJobs) {
+      return next(errorHandler(404, "No openings found!"));
+    }
+
+    res.status(200).json({ success: true, allJobs });
+  } catch (error) {
+    next(
+      errorHandler(500, `Error fetching job openings, Error ${error.message}`)
+    );
+    console.log(error);
+  }
+};
+
+export const getJob = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || !isValidObjectId(id)) {
+      return next(
+        errorHandler(400, id ? "Invalid Job ID" : "Job ID is required!")
+      );
+    }
+
+    const job = await Job.findById(id).populate(
+      "postedBy",
+      "firstName lastName"
+    );
+    if (!job) {
+      return next(
+        errorHandler(
+          404,
+          `Job with ID ${id} not found or may have been deleted.`
+        )
+      );
+    }
+
+    res.status(200).json({ success: true, job });
+  } catch (error) {
+    next(errorHandler(500, "An error occurred while retrieving the job."));
+  }
+};
+
+export const createJobApplication = async (req, res, next) => {
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    linkedInProfile,
+    portfolio,
+    jobId,
+    education,
+    workExperience,
+    willingToRelocate,
+    expectedSalaryRange,
+  } = req.body;
+
+  // Validate required fields
+  const missingFields = [
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "jobId",
+    "education",
+    "willingToRelocate",
+    "expectedSalaryRange",
+  ].filter((field) => !req.body[field]);
+
+  if (missingFields.length) {
+    return next(
+      errorHandler(400, `Missing required fields: ${missingFields.join(", ")}`)
+    );
+  }
+
+  if (!Array.isArray(education) || education.length === 0) {
+    return next(errorHandler(400, "Education must be an array with at least one entry."));
+  }
+
+  // Validate education entries
+  for (const edu of education) {
+    if (!edu.degree || !edu.institutionName || !edu.graduationYear) {
+      return next(
+        errorHandler(400, "Each education entry must have degree, institutionName, and graduationYear.")
+      );
+    }
+  }
+
+  try {
+    // Validate Job ID
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return next(errorHandler(404, "Job not found"));
+    }
+
+    // Create new candidate application
+    const newApplication = new JobApplication({
+      firstName,
+      lastName,
+      email,
+      phone,
+      linkedInProfile,
+      portfolio,
+      jobId,
+      education,
+      workExperience: workExperience || [], // Optional field
+      willingToRelocate,
+      expectedSalaryRange,
+    });
+
+    // Save the application
+    await newApplication.save();
+
+    res
+      .status(201)
+      .json({ success: true, message: "Application submitted successfully", application: newApplication });
+  } catch (error) {
+    next(errorHandler(500, `Error on job application, Error: ${error.message}`));
+  }
+};
+
+
+export const getMyPerformance = async (req, res, next) => {
+  const { id } = req.user;
+
+  if (!id || !isValidObjectId(id)) {
+    return next(errorHandler(400, id ? "ID is not valid" : "ID is required"));
+  }
+
+  try {
+    const user = await User.findById(id);
+
+    if(!user){
+      return next(errorHandler(404, "User not found!"));
+    }
+
+    const employeePerfomance = {};
+    employeePerfomance.monthlyPerfomance = user.performance;
+    employeePerfomance.totalPerformance = user.totalPerformance;
+
+    res.status(200).json({success: false, message: "Employee perfomance successfully retrived", employeePerfomance});
+
+  } catch (error) {
+    next(errorHandler(500, `Error fetching perfomance, Error: ${error.message}`));
   }
 };

@@ -9,6 +9,8 @@ import moment from "moment";
 import Attendance from "../models/attendance.model.js";
 import Feedback from "../models/feedback.model.js";
 import Mail from "../models/mail.model.js";
+import Job from "../models/job.model.js";
+import JobApplications from "../models/jobApplication.model.js";
 
 export const getEmployees = async (req, res, next) => {
   try {
@@ -688,9 +690,236 @@ export const markAsRead = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: `Mail status updated to ${status}`,
-      updatedMail
+      updatedMail,
     });
   } catch (error) {
     console.log(error);
+  }
+};
+
+export const addJob = async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    // Check user role
+    if (!["hr", "admin"].includes(user.role)) {
+      return next(errorHandler(401, "You can't access this API"));
+    }
+
+    // Extract fields from request body
+    const {
+      title,
+      description,
+      jobType,
+      department,
+      location,
+      salaryRange,
+      workHours,
+      experienceRequired,
+      qualifications = [],
+      skillsRequired = [],
+      applicationDeadline,
+      jobStatus = "open",
+      email,
+      phone,
+    } = req.body;
+
+    // Validate required fields
+    const requiredFields = [
+      "title",
+      "description",
+      "jobType",
+      "department",
+      "location",
+      "salaryRange",
+      "workHours",
+      "experienceRequired",
+      "applicationDeadline",
+      "email",
+      "phone",
+    ];
+
+    const missingFields = requiredFields.filter((field) => !req.body[field]);
+
+    if (missingFields.length) {
+      return next(
+        errorHandler(
+          400,
+          `All fields are required! Missing fields: ${missingFields.join(", ")}`
+        )
+      );
+    }
+
+    // Ensure qualifications and skillsRequired are arrays
+    if (!Array.isArray(qualifications) || !Array.isArray(skillsRequired)) {
+      return next(
+        errorHandler(400, "Qualifications and skillsRequired must be arrays")
+      );
+    }
+
+    // Create and save job
+    const newJob = new Job({
+      title,
+      description,
+      jobType,
+      department,
+      location,
+      salaryRange,
+      workHours,
+      experienceRequired,
+      qualifications,
+      skillsRequired,
+      applicationDeadline,
+      jobStatus,
+      postedBy: user.id,
+      contactInfo: { email, phone },
+    });
+
+    await newJob.save();
+
+    // Send success response
+    res.status(201).json({
+      success: true,
+      message: "New Job Opening Created",
+      job: newJob,
+    });
+  } catch (error) {
+    next(
+      errorHandler(
+        500,
+        `An error occurred while creating the job, Error: ${error.message}`
+      )
+    );
+  }
+};
+
+export const getAllJobApplications = async (req, res, next) => {
+  if (!["hr", "admin"].includes(req.user.role)) {
+    return next(errorHandler(401, "You can't access this API"));
+  }
+
+  try {
+    const applications = await JobApplications.find()
+      .populate("jobId", "title applicationDeadline")
+      .sort({ createdAt: -1 });
+
+    if (!applications) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No job applications found!" });
+    }
+
+    res.status(200).json({ success: true, applications });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: "Error fetching all job applications",
+      error: error.message,
+    });
+  }
+};
+
+export const getJobApllication = async (req, res, next) => {
+  if (!["hr", "admin"].includes(req.user.role)) {
+    return next(errorHandler(401, "You can't access this API"));
+  }
+
+  const { id } = req.params;
+
+  if (!id || !isValidObjectId(id)) {
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: id ? "Job Id is invalid" : "Job Id is required",
+      });
+  }
+
+  try {
+    const application = await JobApplications.findById(id)
+      .populate("jobId", "title applicationDeadline")
+      .sort({ createdAt: -1 });
+
+    if (!application) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No job applications found!" });
+    }
+
+    res.status(200).json({ success: true, application });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: "Error fetching all job applications",
+      error: error.message,
+    });
+  }
+};
+
+export const getPerfomance = async (req, res, next) => {
+  if (!["hr", "admin"].includes(req.user.role)) {
+    return next(errorHandler(401, "Your are not allowed to use this API"));
+  }
+
+  const { id } = req.params;
+
+  if (!id || !isValidObjectId(id)) {
+    return next(errorHandler(400, id ? "ID is not valid" : "ID is required"));
+  }
+
+  try {
+    const user = await User.findById(id);
+
+    if(!user){
+      return next(errorHandler(404, "User not found!"));
+    }
+
+    const employeePerfomance = {};
+    employeePerfomance.monthlyPerfomance = user.performance;
+    employeePerfomance.totalPerformance = user.totalPerformance;
+
+    res.status(200).json({success: false, message: "Employee perfomance successfully retrived", employeePerfomance});
+
+  } catch (error) {
+    next(errorHandler(500, `Error fetching perfomance, Error: ${error.message}`));
+  }
+};
+
+export const addPerformance = async (req, res, next) => {
+  const { id } = req.params;
+  const { month, performance, year } = req.body;
+
+  // Check if the user role is authorized
+  if (!["hr", "admin"].includes(req.user.role)) {
+    return next(errorHandler(401, "You are not allowed to use this API"));
+  }
+
+  // Validate `id`, `month`, `performance`, and `year`
+  if (!id || !isValidObjectId(id)) {
+    return next(errorHandler(400, id ? "ID is not valid" : "ID is required"));
+  }
+
+  if (!month || !performance || !year) {
+    return next(errorHandler(400, "Month, year, and performance are required!"));
+  }
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(id);
+
+    if (!user) {
+      return next(errorHandler(404, "User not found with this ID"));
+    }
+
+    // Push the new performance object into the user's performance array
+    user.performance.push({ month: `${month} ${year}`, performance });
+
+    // Save the user document to trigger the middleware
+    await user.save();
+
+    // Respond with the updated user
+    res.status(200).json({ message: "Performance added successfully", user });
+  } catch (error) {
+    next(errorHandler(500, `Error adding performance: ${error.message}`));
   }
 };

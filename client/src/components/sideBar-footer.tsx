@@ -186,8 +186,8 @@ const SideFooter = () => {
                           src={`https://api.dicebear.com/6.x/initials/svg?seed=${user.firstName} ${user.lastName}`}
                         />
                         <AvatarFallback>
-                          {user.firstName[0]}
-                          {user.lastName[0]}
+                          {user?.firstName[0]}
+                          {user?.lastName[0]}
                         </AvatarFallback>
                       </Avatar>
                         <div className="grid grid-cols-2 gap-3">
