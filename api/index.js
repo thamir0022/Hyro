@@ -6,6 +6,7 @@ import hrRoutes from "./routes/hr.route.js";
 import adminRoutes from "./routes/admin.route.js";
 import employeeRoutes from "./routes/employee.route.js";
 import CourseRoutes from "./routes/course.route.js"
+import ProgressRoutes from "./routes/progress.route.js"
 import cookieParser from "cookie-parser";
 
 const app = express();
@@ -33,6 +34,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/hr", hrRoutes);
 app.use("/api/employee", employeeRoutes);
 app.use("/api/courses",CourseRoutes );
+app.use('/api/progress', ProgressRoutes);
 
 
 //Middleware for error messages
