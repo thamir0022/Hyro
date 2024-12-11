@@ -29,6 +29,7 @@ import AddJobOpening from "./pages/NewJobPage";
 import AllJobApplications from "./pages/AllJobApplicationsPage";
 import JobApplicationDetails from "./pages/JobApplicationDetails";
 import CourseManagement from "./pages/EmployeeCourses";
+import EmployeeCourses from "./pages/Courses";
 
 const App = () => {
   return (
@@ -69,6 +70,7 @@ const App = () => {
             <Route path="/job/:id?" element={<JobDetails />} />
             <Route path="/apply-job/:id" element={<JobApplication />} />
             <Route path="/courses" element={<CourseManagement/>} />
+            <Route path="/Employee-courses" element={<EmployeeCourses/>} />
           </Routes>
         </UserProvider>
       </SidebarProvider>

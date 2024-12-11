@@ -64,6 +64,7 @@ const employeeItems: Item[] = [
   { title: "Apply A Leave", url: "/apply-leave", icon: Pen},
   { title: "Leave Applications", url: "/all-leaves", icon: MessageSquare},
   { title: "Settings", url: "#", icon: Settings },
+  { title: "Courses", url: "/Employee-courses", icon: NotebookText },
 ];
 
 const adminItems: Item[] = [
@@ -99,6 +100,7 @@ const adminItems: Item[] = [
   { title: "Search", url: "/search", icon: Search },
   { title: "Settings", url: "#", icon: Settings },
   { title: "Employee Courses", url: "/courses", icon: NotebookText },
+  
 ];
 
 const AppSidebar = () => {
