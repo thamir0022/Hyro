@@ -21,6 +21,7 @@ import {
   sendMail,
   updateLeaveApplicationStatus,
 } from "../controllers/hr.controller.js";
+import { progressEnroll } from "../controllers/progress.controller.js";
 
 const router = express();
 
@@ -47,5 +48,6 @@ router.get("/get-all-job-applications", verifyToken, getAllJobApplications);
 router.get("/get-job-application/:id?", verifyToken, getJobApllication);
 router.post("/add-perfomance/:id?", verifyToken, addPerformance);
 router.get("/get-perfomance/:id?", verifyToken, getPerfomance);
+router.post('/enroll', verifyToken,progressEnroll);
 
 export default router;

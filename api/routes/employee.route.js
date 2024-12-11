@@ -23,6 +23,7 @@ import {
   createJobApplication,
   getMyPerformance,
 } from "../controllers/employee.controller.js";
+import { allProgress, courseProgress, employeeCourse, updateProgress } from "../controllers/progress.controller.js";
 
 const router = express();
 
@@ -47,5 +48,10 @@ router.get("/get-all-job-openings", getAllJobs);
 router.get("/job/:id?", getJob);
 router.post("/apply-job", createJobApplication);
 router.get("/get-my-performance", verifyToken, getMyPerformance);
+router.patch('/update', verifyToken, updateProgress);
+router.get('/course-progress/:courseId/progress/:userId', verifyToken, courseProgress);
+router.get('/employee-course', verifyToken, employeeCourse);
+router.get('/all-progress', verifyToken, allProgress);
+
 
 export default router;

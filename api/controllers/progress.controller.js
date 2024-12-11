@@ -1,17 +1,17 @@
 import Progress from "../models/progress.model.js";
 import Course from "../models/course.model.js";
-import { errorHandler } from "../utils";
+import { errorHandler } from "../utils/index.js";
 
 export const progressEnroll = async (req, res) => {
   const { userId, courseId } = req.body;
   try {
-    const Progress = new Progress({
+    const newProgress = new Progress({
       userId,
       courseId,
       videosWatched: [],
     });
 
-    await Progress.save();
+    await newProgress.save();
     res
       .status(201)
       .json({ success: true, message: "Employee enrolled successfully" });
@@ -23,26 +23,33 @@ export const progressEnroll = async (req, res) => {
 
 export const updateProgress = async (req, res) => {
   const { userId, courseId, videoId } = req.body;
+
   try {
+    // Find the progress document for the given user and course
     const progress = await Progress.findOne({ userId, courseId });
 
     if (!progress) {
-      return next(errorHandler(404, "progress not found"));
+      return res.status(404).json({ success: false, message: "Progress not found" });
     }
 
-    if (!progress.videosWatched.some((video) => video.videoId === videoId)) {
+    // Check if the video is already in the videosWatched array
+    const videoAlreadyWatched = progress.videosWatched.some(
+      (video) => video.videoId === videoId
+    );
+
+    if (!videoAlreadyWatched) {
+      // Add the video to the watched list
       progress.videosWatched.push({ videoId });
       await progress.save();
     }
 
-    res
-      .status(200)
-      .json({ success: true, message: "progress updated successfully" });
+    res.status(200).json({ success: true, message: "Progress updated successfully" });
   } catch (error) {
-    console.error("faild to update progress", error);
-    return res.status(500).json({ message: "internal server error" });
+    console.error("Failed to update progress:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 
 export const courseProgress = async (req, res) => {
   const { courseId, userId } = req.params;
