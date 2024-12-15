@@ -22,7 +22,7 @@ import {
   updateLeaveApplicationStatus,
 } from "../controllers/hr.controller.js";
 import { progressEnroll } from "../controllers/progress.controller.js";
-import { addCourse } from "../controllers/course.controller.js";
+import { addCourse, deleteCourse } from "../controllers/course.controller.js";
 
 const router = express();
 
@@ -50,6 +50,7 @@ router.get("/get-job-application/:id?", verifyToken, getJobApllication);
 router.post("/add-perfomance/:id?", verifyToken, addPerformance);
 router.get("/get-perfomance/:id?", verifyToken, getPerfomance);
 router.post('/enroll', verifyToken,progressEnroll);
-app.post('/add-course', verifyToken, addCourse);
+router.post('/add-course', verifyToken, addCourse);
+router.delete('/delete-course/:courseId', verifyToken, deleteCourse);
 
 export default router;

@@ -36,6 +36,8 @@ interface EmployeeProgress {
 }
 
 export default function CourseManagement() {
+
+  
   const [courses, setCourses] = useState<any[]>([])
   const [newCourse, setNewCourse] = useState<Partial<Course>>({
     title: '',
@@ -193,38 +195,32 @@ export default function CourseManagement() {
     }
   }
 
-  const handleDeleteCourse = async (courseId: string) => {
-    setIsLoading(true)
+  const handleDeleteCourse = async (courseId: string, index: number) => {
     try {
-      const response = await fetch(`/api/courses/delete-course/d${courseId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-
+      const response = await fetch(`/api/hr/delete-course/${courseId}`, {
+        method: "DELETE",
+      });
+  
       if (!response.ok) {
-        throw new Error('Failed to delete course')
+        throw new Error("Failed to delete course");
       }
-      
-      // Remove the course from the list
-      setCourses(prev => prev.filter(course => course._id !== courseId))
-      
+  
       toast({
         title: "Success",
-        description: "Course deleted successfully"
-      })
+        description: "Course deleted successfully!",
+      });
+  
+      setCourses((prevCourses) => prevCourses.filter((_, i) => i !== index));
     } catch (error) {
-      console.error('Error deleting course:', error)
+      console.error("Error deleting course:", error);
       toast({
         title: "Error",
-        description: "Failed to delete course",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
+        description: "Failed to delete course. Please try again.",
+        variant: "destructive",
+      });
     }
-  }
+  };
+  
 
   return (
     <Layout>
@@ -398,7 +394,7 @@ export default function CourseManagement() {
                             </Button>
                             <Button 
                               variant="destructive" 
-                              onClick={() => handleDeleteCourse(courses._id || '')}
+                              onClick={() => handleDeleteCourse(courses._id || '', index )}
                               disabled={isLoading}
                             >
                               Delete
@@ -416,5 +412,4 @@ export default function CourseManagement() {
       </Tabs>
     </div>
     </Layout>
-  )
-}
+  )}

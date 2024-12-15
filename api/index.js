@@ -5,7 +5,6 @@ import authRoutes from "./routes/auth.route.js";
 import hrRoutes from "./routes/hr.route.js";
 import adminRoutes from "./routes/admin.route.js";
 import employeeRoutes from "./routes/employee.route.js";
-import CourseRoutes from "./routes/course.route.js";
 import cookieParser from "cookie-parser";
 
 const app = express();

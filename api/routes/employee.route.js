@@ -24,7 +24,7 @@ import {
   getMyPerformance,
 } from "../controllers/employee.controller.js";
 import { allProgress, courseProgress, employeeCourse, updateProgress } from "../controllers/progress.controller.js";
-import { deleteCourse, editCourse, getCourses } from "../controllers/course.controller.js";
+import { editCourse, getCourses } from "../controllers/course.controller.js";
 
 const router = express();
 
@@ -53,9 +53,9 @@ router.patch('/update', verifyToken, updateProgress);
 router.get('/course-progress/:courseId/progress/:userId', verifyToken, courseProgress);
 router.get('/employee-course', verifyToken, employeeCourse);
 router.get('/all-progress', verifyToken, allProgress);
-app.patch('/edit-course/:courseId', verifyToken, editCourse);
-app.get('/get-courses', verifyToken,getCourses);
-app.delete('/delete-course/:courseId', verifyToken, deleteCourse);
+router.patch('/edit-course/:courseId', verifyToken, editCourse);
+router.get('/get-courses', verifyToken,getCourses);
+
 
 
 export default router;

@@ -116,13 +116,13 @@ export const deleteCourse = async (req, res, next) => {
 
     // Validate courseId
     if (!courseId || !isValidObjectId(courseId)) {
-      return next(errorHandler(400, courseId ? "Course ID is invalid" : "Course ID is required"));
+      return next(errorHandler(400, "Invalid course ID"));
     }
 
-    // Delete the course
-    const deletedCourse = await Course.findOneAndDelete({
-      _id: courseId,
-      createdBy: req.user.id, // Ensures only the creator can delete
+    // Delete the course, ensuring only the creator can delete
+    const deletedCourse = await Course.findOneAndDelete({ 
+      _id: courseId, 
+      createdBy: req.user.id 
     });
 
     if (!deletedCourse) {
@@ -131,7 +131,7 @@ export const deleteCourse = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Course deleted successfully",
+      message: "Course deleted successfully"
     });
   } catch (error) {
     console.error("Error deleting course", error);
