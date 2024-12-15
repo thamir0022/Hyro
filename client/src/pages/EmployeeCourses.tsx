@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2, Video, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, Video } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import Layout from "@/components/Layout"
+import { toast } from "@/hooks/use-toast" // Assuming you have a toast component
 
 // Types based on the Mongoose model
 interface PlaylistItem {
@@ -19,7 +20,7 @@ interface PlaylistItem {
 }
 
 interface Course {
-  id: string
+  _id?: string
   title: string
   description: string
   createdBy: string
@@ -35,7 +36,7 @@ interface EmployeeProgress {
 }
 
 export default function CourseManagement() {
-  const [courses, setCourses] = useState<Course[]>([])
+  const [courses, setCourses] = useState<any[]>([])
   const [newCourse, setNewCourse] = useState<Partial<Course>>({
     title: '',
     description: '',
@@ -45,24 +46,36 @@ export default function CourseManagement() {
     title: '',
     url: ''
   })
+  const [isLoading, setIsLoading] = useState(false)
+  const [isCourseLoading, setIsCourseLoading] = useState(false);
   
-  // Mock employee progress data
-  const [employeeProgress] = useState<EmployeeProgress[]>([
-    {
-      employeeId: '1',
-      employeeName: 'John Doe',
-      courseId: '1',
-      completedItems: ['1', '2'],
-      progress: 75
-    },
-    {
-      employeeId: '2',
-      employeeName: 'Jane Smith',
-      courseId: '1',
-      completedItems: ['1'],
-      progress: 25
+  // Mock employee progress data (you'd fetch this from an API in a real app)
+  const [employeeProgress, setEmployeeProgress] = useState<EmployeeProgress[]>([])
+
+ useEffect(() => {
+  const fetchCourse = async () => {
+    setIsCourseLoading(true);
+    try {
+      const res = await fetch("/api/employee/get-courses");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "failed to fetch courses" )
+      }
+      setCourses(data.courses);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch courses",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCourseLoading(false);
     }
-  ])
+  };
+  fetchCourse()
+ }, []);
 
   const handleAddPlaylistItem = () => {
     if (newPlaylistItem.title && newPlaylistItem.url) {
@@ -74,17 +87,55 @@ export default function CourseManagement() {
     }
   }
 
-  const handleCreateCourse = () => {
-    if (newCourse.title && newCourse.description) {
-      const course: Course = {
-        id: Date.now().toString(),
-        title: newCourse.title,
-        description: newCourse.description,
-        createdBy: 'current-user-id', // This would come from auth context
-        playlist: newCourse.playlist || []
+  const handleCreateCourse = async () => {
+    if (newCourse.title && newCourse.description && newCourse.playlist?.length) {
+      setIsLoading(true)
+      try {
+        const response = await fetch('/api/hr/add-course', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: newCourse.title,
+            description: newCourse.description,
+            playlist: newCourse.playlist
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to create course')
+        }
+        
+        const data = await response.json()
+        
+        // Add the new course to the list
+        setCourses(prev => [...prev, data.newCourse])
+        
+        // Reset form
+        setNewCourse({ title: '', description: '', playlist: [] })
+        
+        // Show success toast
+        toast({
+          title: "Success",
+          description: "Course created successfully"
+        })
+      } catch (error) {
+        console.error('Error creating course:', error)
+        toast({
+          title: "Error",
+          description: "Failed to create course",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoading(false)
       }
-      setCourses(prev => [...prev, course])
-      setNewCourse({ title: '', description: '', playlist: [] })
+    } else {
+      toast({
+        title: "Validation Error",
+        description: "Please fill all fields and add at least one video to the playlist",
+        variant: "destructive"
+      })
     }
   }
 
@@ -93,6 +144,86 @@ export default function CourseManagement() {
       ...prev,
       playlist: prev.playlist?.filter((_, i) => i !== index)
     }))
+  }
+
+  const handleEditCourse = async (courseId: string) => {
+    const courseToEdit = courses.find(c => c._id === courseId)
+    if (!courseToEdit) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/employee/edit-course/${courseId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: courseToEdit.title,
+          description: courseToEdit.description,
+          playlist: courseToEdit.playlist
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update course')
+      }
+
+      const data = await response.json()
+
+      // Update the course in the list
+      setCourses(prev => 
+        prev.map(course => 
+          course._id === courseId ? data.updatedCourse : course
+        )
+      )
+
+      toast({
+        title: "Success",
+        description: "Course updated successfully"
+      })
+    } catch (error) {
+      console.error('Error editing course:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update course",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleDeleteCourse = async (courseId: string) => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/courses/delete-course/d${courseId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete course')
+      }
+      
+      // Remove the course from the list
+      setCourses(prev => prev.filter(course => course._id !== courseId))
+      
+      toast({
+        title: "Success",
+        description: "Course deleted successfully"
+      })
+    } catch (error) {
+      console.error('Error deleting course:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete course",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -117,11 +248,13 @@ export default function CourseManagement() {
                   placeholder="Course Title"
                   value={newCourse.title}
                   onChange={e => setNewCourse(prev => ({ ...prev, title: e.target.value }))}
+                  disabled={isLoading}
                 />
                 <Textarea
                   placeholder="Course Description"
                   value={newCourse.description}
                   onChange={e => setNewCourse(prev => ({ ...prev, description: e.target.value }))}
+                  disabled={isLoading}
                 />
               </div>
 
@@ -132,13 +265,15 @@ export default function CourseManagement() {
                     placeholder="Video Title"
                     value={newPlaylistItem.title}
                     onChange={e => setNewPlaylistItem(prev => ({ ...prev, title: e.target.value }))}
+                    disabled={isLoading}
                   />
                   <Input
                     placeholder="Video URL"
                     value={newPlaylistItem.url}
                     onChange={e => setNewPlaylistItem(prev => ({ ...prev, url: e.target.value }))}
+                    disabled={isLoading}
                   />
-                  <Button onClick={handleAddPlaylistItem}>
+                  <Button onClick={handleAddPlaylistItem} disabled={isLoading}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -150,7 +285,12 @@ export default function CourseManagement() {
                         <Video className="h-4 w-4" />
                         <span>{item.title}</span>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => removePlaylistItem(index)}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removePlaylistItem(index)}
+                        disabled={isLoading}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -159,7 +299,12 @@ export default function CourseManagement() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleCreateCourse}>Create Course</Button>
+              <Button 
+                onClick={handleCreateCourse} 
+                disabled={isLoading}
+              >
+                {isLoading ? 'Creating...' : 'Create Course'}
+              </Button>
             </CardFooter>
           </Card>
         </TabsContent>
@@ -185,7 +330,7 @@ export default function CourseManagement() {
                     <TableRow key={`${progress.employeeId}-${progress.courseId}`}>
                       <TableCell>{progress.employeeName}</TableCell>
                       <TableCell>
-                        {courses.find(c => c.id === progress.courseId)?.title || 'Course Title'}
+                        {courses.find(c => c._id === progress.courseId)?.title || 'Course Title'}
                       </TableCell>
                       <TableCell>
                         <div className="w-[100px]">
@@ -208,36 +353,63 @@ export default function CourseManagement() {
               <CardDescription>View and manage all created courses</CardDescription>
             </CardHeader>
             <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                {courses.map((course, index) => (
-                  <AccordionItem value={`item-${index}`} key={course.id}>
-                    <AccordionTrigger>
-                      <div className="flex justify-between w-full">
-                        <span>{course.title}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {course.playlist.length} videos
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">{course.description}</p>
-                        <h4 className="font-medium">Playlist:</h4>
-                        <ul className="space-y-1">
-                          {course.playlist.map((item, itemIndex) => (
-                            <li key={itemIndex} className="flex items-center gap-2">
-                              <Video className="h-4 w-4" />
-                              <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm hover:underline">
-                                {item.title}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+              {isLoading ? (
+                <div className="flex justify-center items-center h-40">
+                  <p>Loading courses...</p>
+                </div>
+              ) : (
+                <Accordion type="single" collapsible className="w-full">
+                  {courses.map((courses, index) => (
+                    <AccordionItem value={`item-${index}`} key={courses._id}>
+                      <AccordionTrigger>
+                        <div className="flex justify-between w-full">
+                          <span>{courses.title}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {courses.playlist.length} videos
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">{courses.description}</p>
+                          <h4 className="font-medium">Playlist:</h4>
+                          <ul className="space-y-1">
+                            {courses.playlist.map((item, itemIndex) => (
+                              <li key={itemIndex} className="flex items-center gap-2">
+                                <Video className="h-4 w-4" />
+                                <a 
+                                  href={item.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-sm hover:underline"
+                                >
+                                  {item.title}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="flex justify-end space-x-2 mt-2">
+                            <Button 
+                              variant="outline" 
+                              onClick={() => handleEditCourse(courses._id || '')}
+                              disabled={isLoading}
+                            >
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              onClick={() => handleDeleteCourse(courses._id || '')}
+                              disabled={isLoading}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -246,4 +418,3 @@ export default function CourseManagement() {
     </Layout>
   )
 }
-

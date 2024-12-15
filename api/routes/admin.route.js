@@ -11,4 +11,5 @@ router.put("/hr/edit", verifyToken, editHR);
 router.delete("/delete-hr/:id?", verifyToken, deleteHR);
 router.get("/search", verifyToken, search);  
 
+
 export default router;

@@ -32,7 +32,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/hr", hrRoutes);
 app.use("/api/employee", employeeRoutes);
-app.use("/api/courses",CourseRoutes );
 
 
 //Middleware for error messages
