@@ -9,6 +9,8 @@ import Feedback from "../models/feedback.model.js";
 import Mail from "../models/mail.model.js";
 import Job from "../models/job.model.js";
 import JobApplication from "../models/jobApplication.model.js";
+import Course from "../models/course.model.js";
+
 
 export const getEmployee = async (req, res, next) => {
   try {
@@ -830,5 +832,27 @@ export const getMyPerformance = async (req, res, next) => {
 
   } catch (error) {
     next(errorHandler(500, `Error fetching perfomance, Error: ${error.message}`));
+  }
+};
+
+export const getCourses = async (req, res, next) => {
+  try {
+    const courses = await Course.find()
+      .populate("createdBy", "name email") // Populates the admin's name and email
+      .sort({ createdAt: -1 });
+
+    if (!courses || courses.length === 0) {
+      return next(errorHandler(404, "No courses found"));
+    }
+
+    return res.status(200).json({
+      success: true,
+      courses,
+      message: "Courses retrieved successfully",
+      totalCourses: courses.length,
+    });
+  } catch (error) {
+    console.error("Error retrieving courses", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

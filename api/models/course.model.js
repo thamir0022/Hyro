@@ -30,6 +30,12 @@ const courseSchema = new mongoose.Schema(
         },
       },
     ],
+    assignedTo: [
+      {
+        type: mongoose.Types.ObjectId,
+        ref: "User", // Reference to the User model for employees
+      },
+    ],
   },
   {
     timestamps: true,

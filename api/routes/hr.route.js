@@ -1,11 +1,15 @@
 import express from "express";
 import { verifyToken } from "../utils/index.js";
 import {
+  addCourse,
   addEmployee,
   addFeedback,
   addJob,
   addPerformance,
+  assignCourseToEmployees,
+  deleteCourse,
   deleteEmployee,
+  editCourse,
   editEmployee,
   getAllJobApplications,
   getAllLeaveApplications,
@@ -22,7 +26,6 @@ import {
   updateLeaveApplicationStatus,
 } from "../controllers/hr.controller.js";
 import { progressEnroll } from "../controllers/progress.controller.js";
-import { addCourse, deleteCourse } from "../controllers/course.controller.js";
 
 const router = express();
 
@@ -52,5 +55,7 @@ router.get("/get-perfomance/:id?", verifyToken, getPerfomance);
 router.post('/enroll', verifyToken,progressEnroll);
 router.post('/add-course', verifyToken, addCourse);
 router.delete('/delete-course/:courseId', verifyToken, deleteCourse);
+router.post('/assign/:courseId', verifyToken, assignCourseToEmployees);
+router.patch('/edit-course/:courseId', verifyToken, editCourse);
 
 export default router;

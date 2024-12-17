@@ -11,6 +11,10 @@ import Feedback from "../models/feedback.model.js";
 import Mail from "../models/mail.model.js";
 import Job from "../models/job.model.js";
 import JobApplications from "../models/jobApplication.model.js";
+import Course from "../models/course.model.js";
+
+
+
 
 export const getEmployees = async (req, res, next) => {
   try {
@@ -923,3 +927,196 @@ export const addPerformance = async (req, res, next) => {
     next(errorHandler(500, `Error adding performance: ${error.message}`));
   }
 };
+
+export const addCourse = async (req, res, next) => {
+  try {
+    const { title, description, playlist } = req.body;
+    const userId = req.user.id; // Assuming the admin's userId is in the token
+
+    if (!title || !description || !playlist || !Array.isArray(playlist)) {
+      return next(errorHandler(400, "All fields are required and playlist must be an array"));
+    }
+
+    // Validate playlist
+    const invalidPlaylist = playlist.some(
+      (video) => !video.title || !video.url
+    );
+    if (invalidPlaylist) {
+      return next(errorHandler(400, "Each video in the playlist must have a title and URL"));
+    }
+
+    // Create a new course
+    const newCourse = new Course({
+      title,
+      description,
+      playlist,
+      createdBy: userId, // Store the creator's userId (admin)
+    });
+
+    await newCourse.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Course added successfully",
+      newCourse,
+    });
+  } catch (error) {
+    console.error("Error adding course", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+
+// Edit a course
+export const editCourse = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+    const { title, description, playlist } = req.body;
+
+    // Validate courseId
+    if (!courseId || !isValidObjectId(courseId)) {
+      return next(errorHandler(400, courseId ? "Course ID is invalid" : "Course ID is required"));
+    }
+
+    if (!title || !description || !playlist || !Array.isArray(playlist)) {
+      return next(errorHandler(400, "All fields (title, description, playlist) are required"));
+    }
+
+    // Validate playlist
+    const invalidPlaylist = playlist.some(
+      (video) => !video.title || !video.url
+    );
+    if (invalidPlaylist) {
+      return next(errorHandler(400, "Each video in the playlist must have a title and URL"));
+    }
+
+    // Update the course
+    const updatedCourse = await Course.findOneAndUpdate(
+      { _id: courseId, createdBy: req.user.id }, // Ensures only the creator can edit
+      { title, description, playlist },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedCourse) {
+      return next(errorHandler(404, "Course not found or not authorized to update"));
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Course updated successfully",
+      updatedCourse,
+    });
+  } catch (error) {
+    console.error("Error updating course", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Delete a course
+export const deleteCourse = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+
+    // Validate courseId
+    if (!courseId || !isValidObjectId(courseId)) {
+      return next(errorHandler(400, "Invalid course ID"));
+    }
+
+    // Delete the course, ensuring only the creator can delete
+    const deletedCourse = await Course.findOneAndDelete({ 
+      _id: courseId, 
+      createdBy: req.user.id 
+    });
+
+    if (!deletedCourse) {
+      return next(errorHandler(404, "Course not found or not authorized to delete"));
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Course deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting course", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+export const assignCourseToEmployees = async (req, res) => {
+  try {
+    const { courseId, employeeIds } = req.body;
+
+    // Validate courseId
+    if (!mongoose.isValidObjectId(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid course ID",
+      });
+    }
+
+    // Validate employeeIds
+    if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one valid employee ID is required",
+      });
+    }
+
+    // Check if course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    // Validate employee IDs
+    const validEmployees = await User.find({
+      _id: { $in: employeeIds },
+      role: "employee",
+    });
+
+    if (validEmployees.length !== employeeIds.length) {
+      const invalidIds = employeeIds.filter(
+        (id) => !validEmployees.some((user) => user._id.toString() === id)
+      );
+      return res.status(400).json({
+        success: false,
+        message: `Invalid employee IDs: ${invalidIds.join(", ")}`,
+      });
+    }
+
+    // Assign course to employees using $addToSet for atomic operation
+    await Course.updateOne(
+      { _id: courseId },
+      { $addToSet: { assignedTo: { $each: employeeIds } } }
+    );
+
+    // Optionally assign the course to employees' assignedCourses field
+    await User.updateMany(
+      { _id: { $in: employeeIds } },
+      { $addToSet: { assignedCourses: courseId } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Course successfully assigned to employees",
+      data: {
+        courseId,
+        assignedEmployees: employeeIds,
+      },
+    });
+  } catch (error) {
+    console.error("Error in assignCourseToEmployees:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+
