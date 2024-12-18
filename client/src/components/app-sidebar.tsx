@@ -16,7 +16,8 @@ import {
   UserRoundPlus,
   Briefcase,
   Folder,
-  NotebookText
+  NotebookText,
+  LibraryBig
 } from "lucide-react";
 import {
   Sidebar,
@@ -99,7 +100,7 @@ const adminItems: Item[] = [
   { title: "Leave Applications", url: "/employee-leave-applications", icon: MessageSquare },
   { title: "Search", url: "/search", icon: Search },
   { title: "Settings", url: "#", icon: Settings },
-  { title: "Employee Courses", url: "/courses", icon: NotebookText },
+  { title: "Employee Training", url: "/courses", icon: LibraryBig },
   
 ];
 

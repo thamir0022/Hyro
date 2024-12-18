@@ -4,17 +4,19 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Trash2, Video } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import Layout from "@/components/Layout"
-import { toast } from "@/hooks/use-toast" // Assuming you have a toast component
+import { toast } from "@/hooks/use-toast"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { Label } from "@/components/ui/label";
+import { useDebounce } from "use-debounce"
+import Layout from "@/components/Layout"
 
-// Types based on the Mongoose
+// Types based on the Mongoose schema
 interface PlaylistItem {
   title: string
   url: string
@@ -41,6 +43,18 @@ interface Employee {
   name: string;
 }
 
+interface AssignedCourse {
+  _id: string;
+  employeeId: string;
+  courseId: string;
+}
+interface EmployeeMail {
+  label: string;
+  value: string;
+}
+
+
+
 export default function CourseManagement() {
 
   const [courses, setCourses] = useState<any[]>([])
@@ -56,12 +70,37 @@ export default function CourseManagement() {
   const [isLoading, setIsLoading] = useState(false)
   const [isCourseLoading, setIsCourseLoading] = useState(false);
 
-  // Mock employee progress data (you'd fetch this from an API in a real app)
   const [employeeProgress, setEmployeeProgress] = useState<EmployeeProgress[]>([])
-
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
-  const [selectedEmployees, setSelectedEmployees] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]); // Add state for employees
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [assignedCourses, setAssignedCourses] = useState<AssignedCourse[]>([]);
+   const [searchTerm, setSearchTerm] = useState("")
+   const [employeeMails, setEmployeeMails] = useState<EmployeeMail[]>([]);
+  
+  
+  useEffect(() => {
+      const fetchEmployeeMails = async () => {
+        try {
+          const res = await fetch(`/api/${user?.role === "admin" || user?.role === "hr" ? "hr" : "employee"}/${user?.role === "admin" || user?.role === "hr" ? "employee" : "hr"}-mails`);
+          const data = await res.json();
+          if (res.ok) {
+            setEmployeeMails(
+              data.user.map((e: { _id: string; email: string }) => ({
+                value: e._id,
+                label: e.email,
+              }))
+            );
+          }
+        } catch (err) {
+          console.error("Error fetching employee emails:", err);
+        }
+      };
+  
+      fetchEmployeeMails();
+    }, []);
+ 
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -104,9 +143,28 @@ export default function CourseManagement() {
         });
       }
     };
+    const fetchAssignedCourses = async () => {
+      try {
+        const res = await fetch('/api/hr/assigned-courses');
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to fetch assigned courses');
+        }
+        setAssignedCourses(data.assignedCourses);
+      } catch (error) {
+        console.error('Error fetching assigned courses:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch assigned courses',
+          variant: 'destructive'
+        });
+      }
+    };
 
     fetchCourse();
     fetchEmployees();
+    fetchAssignedCourses();
   }, []);
 
   const handleAddPlaylistItem = () => {
@@ -141,13 +199,10 @@ export default function CourseManagement() {
 
         const data = await response.json()
 
-        // Add the new course to the list
         setCourses(prev => [...prev, data.newCourse])
 
-        // Reset form
         setNewCourse({ title: '', description: '', playlist: [] })
 
-        // Show success toast
         toast({
           title: "Success",
           description: "Course created successfully"
@@ -202,7 +257,6 @@ export default function CourseManagement() {
 
       const data = await response.json()
 
-      // Update the course in the list
       setCourses(prev =>
         prev.map(course =>
           course._id === courseId ? data.updatedCourse : course
@@ -285,8 +339,7 @@ export default function CourseManagement() {
         title: "Success",
         description: "Course assigned successfully",
       });
-
-      // Optionally reset selections
+      setAssignedCourses([...assignedCourses, data.newAssignment]);
       setSelectedCourse(null);
       setSelectedEmployees([]);
     } catch (error) {
@@ -301,17 +354,46 @@ export default function CourseManagement() {
     }
   };
 
+  const handleUnassignCourse = async (assignmentId: string) => {
+    try {
+      const response = await fetch(`/api/hr/unassign-course/${assignmentId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unassign course');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Course unassigned successfully'
+      });
+
+      setAssignedCourses(prev => prev.filter(assignment => assignment._id !== assignmentId));
+    } catch (error) {
+      console.error('Error unassigning course:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to unassign course',
+        variant: 'destructive'
+      });
+    }
+  };
 
   return (
     <Layout>
       <div className="container mx-auto py-6">
         <Tabs defaultValue="create" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="create">Create Course</TabsTrigger>
-            <TabsTrigger value="progress">Employee Progress</TabsTrigger>
-            <TabsTrigger value="all-courses">All Courses</TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center">
+            <TabsList>
+              <TabsTrigger value="create">Create Course</TabsTrigger>
+              <TabsTrigger value="progress">Employee Progress</TabsTrigger>
+              <TabsTrigger value="all-courses">All Courses</TabsTrigger>
+              <TabsTrigger value="assign-course">Assign Courses</TabsTrigger>
+            </TabsList>
+          </div>
 
+          {/* Create Course */}
           <TabsContent value="create">
             <Card>
               <CardHeader>
@@ -323,83 +405,179 @@ export default function CourseManagement() {
                   <Input
                     placeholder="Course Title"
                     value={newCourse.title}
-                    onChange={e => setNewCourse(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) => setNewCourse((prev) => ({ ...prev, title: e.target.value }))}
                     disabled={isLoading}
                   />
                   <Textarea
                     placeholder="Course Description"
                     value={newCourse.description}
-                    onChange={e => setNewCourse(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) => setNewCourse((prev) => ({ ...prev, description: e.target.value }))}
                     disabled={isLoading}
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Course Playlist</h3>
-                  <div className="flex gap-2">
+                <div>
+                  <h4 className="font-medium mb-2">Add Playlist Videos</h4>
+                  <div className="flex gap-2 items-center">
                     <Input
                       placeholder="Video Title"
                       value={newPlaylistItem.title}
-                      onChange={e => setNewPlaylistItem(prev => ({ ...prev, title: e.target.value }))}
+                      onChange={(e) =>
+                        setNewPlaylistItem((prev) => ({ ...prev, title: e.target.value }))
+                      }
                       disabled={isLoading}
                     />
                     <Input
                       placeholder="Video URL"
                       value={newPlaylistItem.url}
-                      onChange={e => setNewPlaylistItem(prev => ({ ...prev, url: e.target.value }))}
+                      onChange={(e) => setNewPlaylistItem((prev) => ({ ...prev, url: e.target.value }))}
                       disabled={isLoading}
                     />
-                    <Button onClick={handleAddPlaylistItem} disabled={isLoading}>
-                      <Plus className="h-4 w-4" />
+                    <Button
+                      onClick={handleAddPlaylistItem}
+                      disabled={isLoading || !newPlaylistItem.title || !newPlaylistItem.url}
+                    >
+                      <Plus className="w-4 h-4" />
                     </Button>
                   </div>
-
-                  <div className="space-y-2">
-                    {newCourse.playlist?.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 border rounded">
-                        <div className="flex items-center gap-2">
-                          <Video className="h-4 w-4" />
+                  {newCourse.playlist?.length > 0 && (
+                    <ul className="mt-4 space-y-2">
+                      {newCourse.playlist.map((item, index) => (
+                        <li key={index} className="flex justify-between items-center">
                           <span>{item.title}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removePlaylistItem(index)}
-                          disabled={isLoading}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Course Assignment Section */}
-                <div className="space-y-4 mt-6">
-                  <h3 className="text-lg font-medium">Assign Course</h3>
-                  <Select
-                    value={selectedCourse || ""}
-                    onValueChange={(value) => setSelectedCourse(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a Course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {courses.map((course) => (
-                        <SelectItem key={course._id} value={course._id}>
-                          {course.title}
-                        </SelectItem>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removePlaylistItem(index)}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </li>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </ul>
+                  )}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button onClick={handleCreateCourse} disabled={isLoading}>
+                  {isLoading ? "Creating..." : "Create Course"}
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
 
-                  <Select
-                    multiple
-                    value={selectedEmployees}
-                    onValueChange={(values) => setSelectedEmployees(Array.isArray(values) ? values : [values])}
-                  >
+          {/* Employee Progress */}
+          <TabsContent value="progress">
+            <Card>
+              <CardHeader>
+                <CardTitle>Employee Progress</CardTitle>
+                <CardDescription>Track progress of employees in courses</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Employee Name</TableHead>
+                      <TableHead>Course Title</TableHead>
+                      <TableHead>Progress</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {employeeProgress.map((progress, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{progress.employeeName}</TableCell>
+                        <TableCell>
+                          {courses.find((course) => course._id === progress.courseId)?.title}
+                        </TableCell>
+                        <TableCell>
+                          <Progress value={progress.progress} />
+                          <span className="text-sm">{progress.progress}%</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* All Courses */}
+          <TabsContent value="all-courses">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {courses.map((course) => (
+                <Card key={course._id}>
+                  <CardHeader>
+                    <CardTitle>{course.title}</CardTitle>
+                    <CardDescription>{course.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="playlist">
+                        <AccordionTrigger>Playlist</AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="space-y-4">
+                            {course.playlist.map((item, idx) => (
+                              <li key={idx} className="border-b pb-4">
+                                <p className="font-medium mb-2">{item.title}</p>
+                                <div className="aspect-video w-full">
+                                  {item.url.includes("youtube.com") || item.url.includes("youtu.be") ? (
+                                    <iframe
+                                      src={item.url.replace("watch?v=", "embed/")}
+                                      title={item.title}
+                                      allowFullScreen
+                                      className="w-full h-full"
+                                    />
+                                  ) : (
+                                    <video
+                                      src={item.url}
+                                      controls
+                                      preload="metadata"
+                                      className="w-full h-full"
+                                    >
+                                      Your browser does not support the video tag.
+                                    </video>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button variant="outline" onClick={() => handleEditCourse(course._id || "")}>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => handleDeleteCourse(course._id || "", index)}
+                    >
+                      Delete
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Assign Courses */}
+          <TabsContent value="assign-course">
+            <Card>
+              <CardHeader>
+                <CardTitle>Assign Course</CardTitle>
+                <CardDescription>Assign courses to employees</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="employeeSelect">Select Employee(s)</Label>
+                  <Button variant="outline" className="w-full justify-between capitalize">
+                  {employeeMails.find((m) => m.value === mailData.receiver)
+                    ?.label || `Select a ${user?.role === "admin" || user?.role === "hr" ? "employee" : "hr"}`}
+                  <ChevronsUpDown className="ml-2 h-4 w-4" />
+                </Button>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Employees" />
+                      <SelectValue placeholder="Choose employees" />
                     </SelectTrigger>
                     <SelectContent>
                       {employees.map((employee) => (
@@ -409,123 +587,71 @@ export default function CourseManagement() {
                       ))}
                     </SelectContent>
                   </Select>
-
-                  <Button onClick={handleAssignCourse} disabled={isLoading}>
-                    {isLoading ? "Assigning..." : "Assign Course"}
-                  </Button>
                 </div>
-              </CardContent>
-              <CardFooter>
+
+                <div className="space-y-2">
+                  <Label htmlFor="courseSelect">Select Course</Label>
+                  <Select
+                    value={selectedCourse}
+                    onValueChange={setSelectedCourse}
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a course" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courses.map((course) => (
+                        <SelectItem key={course._id} value={course._id}>
+                          {course.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <Button
-                  onClick={handleCreateCourse}
-                  disabled={isLoading}
+                  onClick={handleAssignCourse}
+                  disabled={isLoading || selectedEmployees.length === 0 || !selectedCourse}
                 >
-                  {isLoading ? 'Creating...' : 'Create Course'}
+                  {isLoading ? "Assigning..." : "Assign Course"}
                 </Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="progress">
-            <Card>
-              <CardHeader>
-                <CardTitle>Employee Progress</CardTitle>
-                <CardDescription>Monitor employee progress on courses</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Progress</TableHead>
-                      <TableHead>Completed Items</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {employeeProgress.map((progress) => (
-                      <TableRow key={`${progress.employeeId}-${progress.courseId}`}>
-                        <TableCell>{progress.employeeName}</TableCell>
-                        <TableCell>
-                          {courses.find(c => c._id === progress.courseId)?.title || 'Course Title'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="w-[100px]">
-                            <Progress value={progress.progress} className="h-2" />
-                          </div>
-                        </TableCell>
-                        <TableCell>{progress.completedItems.length} items</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="all-courses">
-            <Card>
-              <CardHeader>
-                <CardTitle>All Courses</CardTitle>
-                <CardDescription>View and manage all created courses</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-40">
-                    <p>Loading courses...</p>
-                  </div>
+              <CardContent className="mt-6">
+                <h4 className="font-medium">Assigned Courses</h4>
+                {assignedCourses.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Employee</TableHead>
+                        <TableHead>Course</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {assignedCourses.map((assignment, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            {employees.find((emp) => emp._id === assignment.employeeId)?.name}
+                          </TableCell>
+                          <TableCell>
+                            {courses.find((course) => course._id === assignment.courseId)?.title}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleUnassignCourse(assignment._id)}
+                            >
+                              Unassign
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 ) : (
-                  <Accordion type="single" collapsible className="w-full">
-                    {courses.map((courses, index) => (
-                      <AccordionItem value={`item-${index}`} key={courses._id}>
-                        <AccordionTrigger>
-                          <div className="flex justify-between w-full">
-                            <span>{courses.title}</span>
-                            <span className="text-sm text-muted-foreground">
-                              {courses.playlist.length} videos
-                            </span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">{courses.description}</p>
-                            <h4 className="font-medium">Playlist:</h4>
-                            <ul className="space-y-1">
-                              {courses.playlist.map((item, itemIndex) => (
-                                <li key={itemIndex} className="flex items-center gap-2">
-                                  <Video className="h-4 w-4" />
-                                  <a
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm hover:underline"
-                                  >
-                                    {item.title}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
-                            <div className="flex justify-end space-x-2 mt-2">
-                              <Button
-                                variant="outline"
-                                onClick={() => handleEditCourse(courses._id || '')}
-                                disabled={isLoading}
-                              >
-                                Edit
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                onClick={() => handleDeleteCourse(courses._id || '', index)}
-                                disabled={isLoading}
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
+                  <p className="text-sm text-gray-500">No courses assigned yet.</p>
                 )}
               </CardContent>
             </Card>
@@ -533,5 +659,7 @@ export default function CourseManagement() {
         </Tabs>
       </div>
     </Layout>
-  )
+
+  );
 }
+
