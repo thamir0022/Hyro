@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +13,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Label } from "@/components/ui/label";
 import { useDebounce } from "use-debounce"
 import Layout from "@/components/Layout"
+import { useUser } from "@/context/userContext";
+import { ChevronsUpDown } from "lucide-react";
+import YouTube from 'react-youtube';
 
 // Types based on the Mongoose schema
 interface PlaylistItem {
@@ -69,38 +70,43 @@ export default function CourseManagement() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isCourseLoading, setIsCourseLoading] = useState(false);
-
+  const { user } = useUser();
   const [employeeProgress, setEmployeeProgress] = useState<EmployeeProgress[]>([])
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [assignedCourses, setAssignedCourses] = useState<AssignedCourse[]>([]);
-   const [searchTerm, setSearchTerm] = useState("")
-   const [employeeMails, setEmployeeMails] = useState<EmployeeMail[]>([]);
-  
-  
+  const [employeeMails, setEmployeeMails] = useState<EmployeeMail[]>([]);
+  const [mailData, setMailData] = useState({
+    sender: user?.id || "",
+    receiver: "",
+    subject: "",
+    content: "",
+  });
+
+
   useEffect(() => {
-      const fetchEmployeeMails = async () => {
-        try {
-          const res = await fetch(`/api/${user?.role === "admin" || user?.role === "hr" ? "hr" : "employee"}/${user?.role === "admin" || user?.role === "hr" ? "employee" : "hr"}-mails`);
-          const data = await res.json();
-          if (res.ok) {
-            setEmployeeMails(
-              data.user.map((e: { _id: string; email: string }) => ({
-                value: e._id,
-                label: e.email,
-              }))
-            );
-          }
-        } catch (err) {
-          console.error("Error fetching employee emails:", err);
+    const fetchEmployeeMails = async () => {
+      try {
+        const res = await fetch(`/api/${user?.role === "admin" || user?.role === "hr" ? "hr" : "employee"}/${user?.role === "admin" || user?.role === "hr" ? "employee" : "hr"}-mails`);
+        const data = await res.json();
+        if (res.ok) {
+          setEmployeeMails(
+            data.user.map((e: { _id: string; email: string }) => ({
+              value: e._id,
+              label: e.email,
+            }))
+          );
         }
-      };
-  
-      fetchEmployeeMails();
-    }, []);
- 
+      } catch (err) {
+        console.error("Error fetching employee emails:", err);
+      }
+    };
+
+    fetchEmployeeMails();
+  }, []);
+
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -279,7 +285,7 @@ export default function CourseManagement() {
     }
   }
 
-  const handleDeleteCourse = async (courseId: string, index: number) => {
+  const handleDeleteCourse = async (courseId: string) => {
     try {
       const response = await fetch(`/api/hr/delete-course/${courseId}`, {
         method: "DELETE",
@@ -294,7 +300,7 @@ export default function CourseManagement() {
         description: "Course deleted successfully!",
       });
 
-      setCourses((prevCourses) => prevCourses.filter((_, i) => i !== index));
+      setCourses((prevCourses) => prevCourses.filter((course) => course._id !== courseId));
     } catch (error) {
       console.error("Error deleting course:", error);
       toast({
@@ -428,6 +434,7 @@ export default function CourseManagement() {
                       disabled={isLoading}
                     />
                     <Input
+                    type="url"
                       placeholder="Video URL"
                       value={newPlaylistItem.url}
                       onChange={(e) => setNewPlaylistItem((prev) => ({ ...prev, url: e.target.value }))}
@@ -440,21 +447,23 @@ export default function CourseManagement() {
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
-                  {newCourse.playlist?.length > 0 && (
-                    <ul className="mt-4 space-y-2">
-                      {newCourse.playlist.map((item, index) => (
-                        <li key={index} className="flex justify-between items-center">
-                          <span>{item.title}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removePlaylistItem(index)}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
+                  {newCourse.playlist && (
+                    newCourse.playlist?.length > 0 && (
+                      <ul className="mt-4 space-y-2">
+                        {newCourse.playlist.map((item, index) => (
+                          <li key={index} className="flex justify-between items-center">
+                            <span>{item.title}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removePlaylistItem(index)}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )
                   )}
                 </div>
               </CardContent>
@@ -503,63 +512,74 @@ export default function CourseManagement() {
 
           {/* All Courses */}
           <TabsContent value="all-courses">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {courses.map((course) => (
-                <Card key={course._id}>
-                  <CardHeader>
-                    <CardTitle>{course.title}</CardTitle>
-                    <CardDescription>{course.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="playlist">
-                        <AccordionTrigger>Playlist</AccordionTrigger>
-                        <AccordionContent>
-                          <ul className="space-y-4">
-                            {course.playlist.map((item, idx) => (
-                              <li key={idx} className="border-b pb-4">
-                                <p className="font-medium mb-2">{item.title}</p>
-                                <div className="aspect-video w-full">
-                                  {item.url.includes("youtube.com") || item.url.includes("youtu.be") ? (
-                                    <iframe
-                                      src={item.url.replace("watch?v=", "embed/")}
-                                      title={item.title}
-                                      allowFullScreen
-                                      className="w-full h-full"
-                                    />
-                                  ) : (
-                                    <video
-                                      src={item.url}
-                                      controls
-                                      preload="metadata"
-                                      className="w-full h-full"
-                                    >
-                                      Your browser does not support the video tag.
-                                    </video>
-                                  )}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => handleEditCourse(course._id || "")}>
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => handleDeleteCourse(course._id || "", index)}
-                    >
-                      Delete
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+  <div className="flex flex-col space-y-4">
+    {courses.map((course) => (
+      <Card 
+        key={course._id} 
+        className="flex flex-row items-start space-x-4"
+      >
+        {/* Section 1: Title and Description */}
+        <div className="w-1/3">
+          <CardHeader>
+            <CardTitle>{course.title}</CardTitle>
+            <CardDescription>{course.description}</CardDescription>
+          </CardHeader>
+        </div>
+
+        {/* Section 2: Playlist Content */}
+        <div className="w-1/3">
+          <CardContent>
+            <Accordion 
+              type="single" 
+              collapsible 
+              className="w-full"
+            >
+              <AccordionItem value="playlist">
+                <AccordionTrigger>Playlist</AccordionTrigger>
+                <AccordionContent>
+                  <ul className="space-y-4">
+                    {course.playlist.map((item: any, idx: Number) => (
+                      <li 
+                        key={idx.toString()} 
+                        className="border-b pb-4"
+                      >
+                        <p className="font-medium mb-2">{item.title}</p>
+                        <div className="aspect-video w-full">
+                          <YouTube
+                            
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </CardContent>
+        </div>
+
+        {/* Section 3: Buttons */}
+        <div className="w-1/3">
+          <CardFooter className="flex flex-row justify-end space-x-4 mt-7 ">
+            <Button 
+              variant="outline" 
+              onClick={() => handleEditCourse(course._id || "")}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleDeleteCourse(course._id || "")}
+            >
+              Delete
+            </Button>
+          </CardFooter>
+        </div>
+      </Card>
+    ))}
+  </div>
+</TabsContent>
+
 
           {/* Assign Courses */}
           <TabsContent value="assign-course">
@@ -572,10 +592,11 @@ export default function CourseManagement() {
                 <div className="space-y-2">
                   <Label htmlFor="employeeSelect">Select Employee(s)</Label>
                   <Button variant="outline" className="w-full justify-between capitalize">
-                  {employeeMails.find((m) => m.value === mailData.receiver)
-                    ?.label || `Select a ${user?.role === "admin" || user?.role === "hr" ? "employee" : "hr"}`}
-                  <ChevronsUpDown className="ml-2 h-4 w-4" />
-                </Button>
+                    {employeeMails.find((m) => m.value === mailData.receiver)
+                      ?.label || `Select a ${user?.role === "admin" || user?.role === "hr" ? "employee" : "hr"}`}
+                    <ChevronsUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                  <Select>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose employees" />
                     </SelectTrigger>
@@ -658,7 +679,7 @@ export default function CourseManagement() {
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
+    </Layout >
 
   );
 }
