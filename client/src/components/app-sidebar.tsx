@@ -55,7 +55,6 @@ const hrItems: Item[] = [
   { title: "Job Applications", url: "/all-job-applications", icon: Folder },
   { title: "Leave Applications", url: "/employee-leave-applications", icon: MessageSquare },
   { title: "Search", url: "/search", icon: Search },
-  { title: "Settings", url: "#", icon: Settings },
 ];
 
 const employeeItems: Item[] = [
@@ -64,7 +63,6 @@ const employeeItems: Item[] = [
   { title: "Personal Goals", url: "/add-goals", icon: Flag },
   { title: "Apply A Leave", url: "/apply-leave", icon: Pen},
   { title: "Leave Applications", url: "/all-leaves", icon: MessageSquare},
-  { title: "Settings", url: "#", icon: Settings },
   { title: "My Courses", url: "/my-courses", icon: NotebookText },
 ];
 
@@ -99,7 +97,6 @@ const adminItems: Item[] = [
   { title: "Job Applications", url: "/all-job-applications", icon: Folder },
   { title: "Leave Applications", url: "/employee-leave-applications", icon: MessageSquare },
   { title: "Search", url: "/search", icon: Search },
-  { title: "Settings", url: "#", icon: Settings },
   { title: "Employee Training", url: "/courses", icon: LibraryBig },
   
 ];

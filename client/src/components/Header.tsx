@@ -37,49 +37,41 @@ const   Header = () => {
     },
     {
       title: "Inbox",
-      url: "#",
-    },
-    {
-      title: "Calendar",
-      url: "#",
+      url: "/inbox",
     },
     {
       title: "Search",
       url: "/search",
-    },
-    {
-      title: "Settings",
-      url: "#",
     },
   ];
 
   const employeeItems = [
     {
       title: "Inbox",
-      url: "#",
+      url: "/inbox",
     },
     {
-      title: "Calendar",
-      url: "#",
+      title: "Dashboard",
+      url: "/dashboard",
     },
     {
-      title: "Settings",
-      url: "#",
+      title: "Goals",
+      url: "/add-goals",
     },
   ];
 
   const defaultItems = [
     {
-      title: "Inbox",
-      url: "#",
+      title: "Home",
+      url: "/",
     },
     {
-      title: "Calendar",
-      url: "#",
+      title: "Sign Up",
+      url: "/sign-up",
     },
     {
-      title: "Settings",
-      url: "#",
+      title: "Sign In",
+      url: "Sign In",
     },
   ];
 
@@ -89,12 +81,12 @@ const   Header = () => {
       url: "/",
     },
     {
-      title: "Calendar",
-      url: "#",
+      title: "Dashboard",
+      url: "/dashboard",
     },
     {
-      title: "Settings",
-      url: "#",
+      title: "Search",
+      url: "/search",
     },
   ];
 
