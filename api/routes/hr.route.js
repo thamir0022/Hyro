@@ -11,6 +11,7 @@ import {
   deleteEmployee,
   editCourse,
   editEmployee,
+  getAllEmployeeProgress,
   getAllJobApplications,
   getAllLeaveApplications,
   getAttendance,
@@ -52,10 +53,11 @@ router.get("/get-all-job-applications", verifyToken, getAllJobApplications);
 router.get("/get-job-application/:id?", verifyToken, getJobApllication);
 router.post("/add-perfomance/:id?", verifyToken, addPerformance);
 router.get("/get-perfomance/:id?", verifyToken, getPerfomance);
+router.get("/get-all-employee-progress", verifyToken, getAllEmployeeProgress);
 router.post('/enroll', verifyToken,progressEnroll);
 router.post('/add-course', verifyToken, addCourse);
 router.delete('/delete-course/:courseId', verifyToken, deleteCourse);
-router.post('/assign/:courseId', verifyToken, assignCourseToEmployees);
+router.post('/assign-course', verifyToken, assignCourseToEmployees);
 router.patch('/edit-course/:courseId', verifyToken, editCourse);
 
 export default router;

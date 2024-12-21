@@ -23,6 +23,8 @@ import {
   createJobApplication,
   getMyPerformance,
   getCourses,
+  getEmployeeCoursesAndProgress,
+  getCourseProgressForEmployee,
 } from "../controllers/employee.controller.js";
 import { allProgress, courseProgress, employeeCourse, updateProgress } from "../controllers/progress.controller.js";
 
@@ -54,7 +56,11 @@ router.get('/course-progress/:courseId/progress/:userId', verifyToken, coursePro
 router.get('/employee-course', verifyToken, employeeCourse);
 router.get('/all-progress', verifyToken, allProgress);
 router.get('/get-courses', verifyToken,getCourses);
+// Route to get all courses and progress for an employee
+router.get("/:userId/courses", getEmployeeCoursesAndProgress);
 
+// Route to get progress for a specific course for an employee
+router.get("/:userId/course/:courseId/progress", getCourseProgressForEmployee);
 
 
 export default router;

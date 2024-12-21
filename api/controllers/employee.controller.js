@@ -10,6 +10,7 @@ import Mail from "../models/mail.model.js";
 import Job from "../models/job.model.js";
 import JobApplication from "../models/jobApplication.model.js";
 import Course from "../models/course.model.js";
+import Progress from "../models/progress.model.js";
 
 
 export const getEmployee = async (req, res, next) => {
@@ -854,5 +855,71 @@ export const getCourses = async (req, res, next) => {
   } catch (error) {
     console.error("Error retrieving courses", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+// Get all courses assigned to an employee along with progress
+export const getEmployeeCoursesAndProgress = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Fetch all courses assigned to the employee
+    const courses = await Course.find({ assignedTo: userId }).populate("createdBy", "name email");
+
+    if (!courses.length) {
+      return res.status(404).json({ message: "No courses assigned to this employee." });
+    }
+
+    // Fetch progress data for the employee
+    const progress = await Progress.find({ userId }).populate("courseId", "title description");
+
+    // Map courses with their progress
+    const courseData = courses.map((course) => {
+      const courseProgress = progress.find((prog) => prog.courseId.toString() === course._id.toString());
+      return {
+        courseId: course._id,
+        title: course.title,
+        description: course.description,
+        playlist: course.playlist,
+        createdBy: course.createdBy,
+        progress: courseProgress
+          ? {
+              totalVideos: courseProgress.totalVideos,
+              completed: courseProgress.completed,
+              videosWatched: courseProgress.videosWatched,
+            }
+          : null, // No progress recorded for this course
+      };
+    });
+
+    res.status(200).json(courseData);
+  } catch (error) {
+    console.error("Error fetching courses and progress:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+// Get progress for a specific course of an employee
+export const getCourseProgressForEmployee = async (req, res) => {
+  try {
+    const { userId, courseId } = req.params;
+
+    // Find the progress for the specific course and employee
+    const progress = await Progress.findOne({ userId, courseId });
+
+    if (!progress) {
+      return res.status(404).json({ message: "No progress found for this course and employee." });
+    }
+
+    res.status(200).json({
+      courseId: progress.courseId,
+      totalVideos: progress.totalVideos,
+      completed: progress.completed,
+      videosWatched: progress.videosWatched,
+    });
+  } catch (error) {
+    console.error("Error fetching course progress:", error);
+    res.status(500).json({ message: "Internal server error." });
   }
 };

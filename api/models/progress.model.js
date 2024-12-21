@@ -12,6 +12,14 @@ const progressSchema = new mongoose.Schema(
       ref: "Course",
       required: true,
     },
+    totalVideos: {
+      type: Number,
+      required: true,
+    },
+    completed: {
+      type: Boolean,
+      default: false,
+    },        
     videosWatched: [
       {
         videoId: {

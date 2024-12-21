@@ -1,11 +1,4 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
 import { toast } from "@/hooks/use-toast";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
 
 export async function fetchData<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, options);

@@ -65,7 +65,7 @@ const employeeItems: Item[] = [
   { title: "Apply A Leave", url: "/apply-leave", icon: Pen},
   { title: "Leave Applications", url: "/all-leaves", icon: MessageSquare},
   { title: "Settings", url: "#", icon: Settings },
-  { title: "Courses", url: "/Employee-courses", icon: NotebookText },
+  { title: "My Courses", url: "/my-courses", icon: NotebookText },
 ];
 
 const adminItems: Item[] = [

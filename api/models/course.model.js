@@ -24,7 +24,7 @@ const courseSchema = new mongoose.Schema(
           required: true,
           trim: true,
         },
-        url: {
+        videoId: {
           type: String,
           required: true,
         },

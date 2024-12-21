@@ -28,8 +28,10 @@ import JobApplication from "./pages/JobApplicationPage";
 import AddJobOpening from "./pages/NewJobPage";
 import AllJobApplications from "./pages/AllJobApplicationsPage";
 import JobApplicationDetails from "./pages/JobApplicationDetails";
-import CourseManagement from "./pages/EmployeeCourses";
-import EmployeeCourses from "./pages/Courses";
+import EmployeeCourses from "./pages/EmployeeCourses";
+import CoursesPage from "./pages/CoursePage";
+import { SingleCourse } from "./pages/SingleCourse";
+import VideoPlayerPage from "./pages/VideoPlayerPage";
 
 const App = () => {
   return (
@@ -44,6 +46,9 @@ const App = () => {
               <Route path="/all-leaves" element={<AppliedLeaves />} />
               <Route path="/add-goals" element={<PersonalGoals />} />
               <Route path="/inbox" element={<ViewEmails />} />
+              <Route path="/my-courses" element={< CoursesPage/>} />
+              <Route path="/my-course/:courseId?" element={< SingleCourse/>} />
+              <Route path="/my-course/:courseId/video/:videoId" element={< VideoPlayerPage/>} />
             </Route>
             <Route element={<OnlyHRPrivateRoutes />}>
               <Route path="/employee/:id?" element={<Employee />} />
@@ -69,8 +74,7 @@ const App = () => {
             <Route path="/careers" element={<JobOpenings />} />
             <Route path="/job/:id?" element={<JobDetails />} />
             <Route path="/apply-job/:id" element={<JobApplication />} />
-            <Route path="/courses" element={<CourseManagement/>} />
-            <Route path="/Employee-courses" element={<EmployeeCourses/>} />
+            <Route path="/courses" element={<EmployeeCourses/>} />
           </Routes>
         </UserProvider>
       </SidebarProvider>

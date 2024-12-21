@@ -12,8 +12,7 @@ import Mail from "../models/mail.model.js";
 import Job from "../models/job.model.js";
 import JobApplications from "../models/jobApplication.model.js";
 import Course from "../models/course.model.js";
-
-
+import Progress from "../models/progress.model.js";
 
 
 export const getEmployees = async (req, res, next) => {
@@ -939,7 +938,7 @@ export const addCourse = async (req, res, next) => {
 
     // Validate playlist
     const invalidPlaylist = playlist.some(
-      (video) => !video.title || !video.url
+      (video) => !video.title || !video.videoId
     );
     if (invalidPlaylist) {
       return next(errorHandler(400, "Each video in the playlist must have a title and URL"));
@@ -1043,7 +1042,6 @@ export const deleteCourse = async (req, res, next) => {
   }
 };
 
-
 export const assignCourseToEmployees = async (req, res) => {
   try {
     const { courseId, employeeIds } = req.body;
@@ -1089,6 +1087,9 @@ export const assignCourseToEmployees = async (req, res) => {
       });
     }
 
+    // Get the total number of videos in the course (assuming Course model has a videos array)
+    const totalVideos = course.playlist.length;
+
     // Assign course to employees using $addToSet for atomic operation
     await Course.updateOne(
       { _id: courseId },
@@ -1096,17 +1097,42 @@ export const assignCourseToEmployees = async (req, res) => {
     );
 
     // Optionally assign the course to employees' assignedCourses field
-    await User.updateMany(
-      { _id: { $in: employeeIds } },
-      { $addToSet: { assignedCourses: courseId } }
-    );
+    // await User.updateMany(
+    //   { _id: { $in: employeeIds } },
+    //   { $addToSet: { assignedCourses: courseId } }
+    // );
+
+    // Create Progress documents for each employee
+    const progressPromises = validEmployees.map(async (employee) => {
+      const existingProgress = await Progress.findOne({
+        userId: employee._id,
+        courseId,
+      });
+
+      if (!existingProgress) {
+        await Progress.create({
+          userId: employee._id,
+          courseId,
+          videosWatched: [], // Initialize with an empty videosWatched array
+          totalVideos, // Add the total number of videos in the course
+          completed: false, // Initialize as false
+        });
+      } else {
+        // Update the progress if the course already exists but new fields are missing
+        existingProgress.totalVideos = totalVideos;
+        existingProgress.completed = existingProgress.videosWatched.length === totalVideos;
+        await existingProgress.save();
+      }
+    });
+
+    await Promise.all(progressPromises); // Ensure all progress entries are created or updated
 
     res.status(200).json({
       success: true,
-      message: "Course successfully assigned to employees",
-      data: {
+      message: "Course successfully assigned to employees and progress created",
+      newAssignment: {
         courseId,
-        assignedEmployees: employeeIds,
+        employeeIds,
       },
     });
   } catch (error) {
@@ -1119,4 +1145,60 @@ export const assignCourseToEmployees = async (req, res) => {
   }
 };
 
+
+
+export const getAllEmployeeProgress = async (req, res) => {
+  try {
+    // Fetch all progress data
+    const progressData = await Progress.find({})
+      .populate("userId", " email") // Populate user details (e.g., name, email)
+      .populate("courseId", "title playlist") // Populate course details (e.g., title, playlist)
+      .lean();
+
+    // Check if there is any progress data
+    if (!progressData || progressData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No progress data found",
+      });
+    }
+
+    // Get distinct course IDs
+    const uniqueCourseIds = Array.from(new Set(progressData.map(p => p.courseId.toString())));
+
+    // Calculate progress for each employee for each unique course
+    const employeeProgress = progressData.map((progress) => {
+      const totalVideos = progress.courseId.playlist.length; // Total videos in the playlist
+      const videosWatchedCount = progress.videosWatched.length; // Videos watched by the employee
+      const watchedPercentage = Math.round(
+        (videosWatchedCount / totalVideos) * 100
+      ); // Calculate watched percentage
+
+      return {
+        courseId: progress.courseId._id,
+        courseTitle: progress.courseId.title,
+        employeeId: progress.userId._id,
+        employeeName: progress.userId.name,
+        employeeEmail: progress.userId.email,
+        totalVideos,
+        videosWatched: videosWatchedCount,
+        watchedPercentage,
+        completed: watchedPercentage === 100,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      totalCourses: uniqueCourseIds.length, // Correct total courses count
+      employeeProgress,
+    });
+  } catch (error) {
+    console.error("Error in getAllEmployeeProgress:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 
